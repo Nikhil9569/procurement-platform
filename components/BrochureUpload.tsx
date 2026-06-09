@@ -23,6 +23,8 @@ export default function BrochureUpload() {
   const [status, setStatus] = useState<"idle" | "uploading" | "extracting" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -67,7 +69,30 @@ export default function BrochureUpload() {
     setMessage("");
   };
 
-  const reset = () => { setFile(null); setStatus("idle"); setMessage(""); setProducts([]); };
+  const save = async () => {
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
+
+    const rows = products.map((p) => ({
+      vendor_id: user.id,
+      product_name: p.product_name,
+      price: p.price,
+      warranty_months: p.warranty_months,
+      delivery_days: p.delivery_days,
+      moq: p.moq,
+    }));
+
+    const { error } = await supabase.from("vendor_catalog").insert(rows);
+    setSaving(false);
+    if (!error) setSaved(true);
+    else setMessage(error.message);
+  };
+
+  const reset = () => {
+    setFile(null); setStatus("idle"); setMessage("");
+    setProducts([]); setSaved(false);
+  };
   const sizeKB = file ? (file.size / 1024).toFixed(0) : "";
 
   return (
@@ -111,14 +136,29 @@ export default function BrochureUpload() {
             </table>
           </div>
 
-          <div className="mt-5 flex gap-3">
-            <button className="rounded-xl bg-[#0c0a09] px-5 py-3 font-medium text-stone-50 hover:bg-stone-800">
-              Save to catalogue
-            </button>
-            <button onClick={reset} className="rounded-xl border border-stone-300 px-5 py-3 font-medium text-stone-700 hover:border-stone-400">
-              Start over
-            </button>
-          </div>
+          {saved ? (
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800">
+              ✓ {products.length} product{products.length !== 1 ? "s" : ""} added to your catalogue.
+              <button onClick={reset} className="ml-3 font-medium text-[#c2410c] hover:underline">
+                Upload another
+              </button>
+            </div>
+          ) : (
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={save}
+                disabled={saving}
+                className="rounded-xl bg-[#0c0a09] px-5 py-3 font-medium text-stone-50 hover:bg-stone-800 disabled:opacity-50"
+              >
+                {saving ? "Saving…" : "Save to catalogue"}
+              </button>
+              <button onClick={reset} className="rounded-xl border border-stone-300 px-5 py-3 font-medium text-stone-700 hover:border-stone-400">
+                Start over
+              </button>
+            </div>
+          )}
+
+          {message && <p className="mt-3 text-sm text-red-600">{message}</p>}
         </div>
       ) : (
         <>
