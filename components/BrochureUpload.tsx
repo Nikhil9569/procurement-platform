@@ -11,6 +11,7 @@ const ACCEPTED = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
 
 type Product = {
   product_name: string;
+  category: string;
   price: number;
   warranty_months: number | null;
   delivery_days: number | null;
@@ -77,12 +78,13 @@ export default function BrochureUpload() {
     const rows = products.map((p) => ({
       vendor_id: user.id,
       product_name: p.product_name,
+      category: p.category,
       price: p.price,
       warranty_months: p.warranty_months,
       delivery_days: p.delivery_days,
       moq: p.moq,
     }));
-
+    
     const { error } = await supabase.from("vendor_catalog").insert(rows);
     setSaving(false);
     if (!error) setSaved(true);
@@ -116,6 +118,7 @@ export default function BrochureUpload() {
               <thead className="bg-stone-50 text-left text-stone-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Product</th>
+                  <th className="px-4 py-3 font-medium">Category</th>
                   <th className="px-4 py-3 font-medium">Price</th>
                   <th className="px-4 py-3 font-medium">Warranty</th>
                   <th className="px-4 py-3 font-medium">Delivery</th>
@@ -126,6 +129,9 @@ export default function BrochureUpload() {
                 {products.map((p, i) => (
                   <tr key={i} className="text-stone-800">
                     <td className="px-4 py-3 font-medium">{p.product_name}</td>
+                     <td className="px-4 py-3">
+                      <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">{p.category}</span>
+                    </td>
                     <td className="px-4 py-3">₹{p.price}</td>
                     <td className="px-4 py-3">{p.warranty_months ? `${p.warranty_months} mo` : "—"}</td>
                     <td className="px-4 py-3">{p.delivery_days ? `${p.delivery_days} days` : "—"}</td>

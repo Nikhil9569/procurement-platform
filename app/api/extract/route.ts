@@ -13,12 +13,13 @@ const schema = {
         type: SchemaType.OBJECT,
         properties: {
           product_name: { type: SchemaType.STRING },
+          category: { type: SchemaType.STRING },
           price: { type: SchemaType.NUMBER },
           warranty_months: { type: SchemaType.NUMBER, nullable: true },
           delivery_days: { type: SchemaType.NUMBER, nullable: true },
           moq: { type: SchemaType.NUMBER, nullable: true },
         },
-        required: ["product_name", "price"],
+        required: ["product_name","category","price"],
       },
     },
   },
@@ -45,12 +46,15 @@ export async function POST(request: Request) {
   const mime = fileData.type || "application/pdf";
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     generationConfig: { responseMimeType: "application/json", responseSchema: schema as any },
   });
 
-  const prompt =
+const prompt =
     "Extract the product catalogue from this brochure. " +
+    "Classify each product into exactly ONE of these categories: " +
+    "Laptops, Desktops, Monitors, Keyboards, Mice, Storage, Networking, Accessories, Other. " +
+    "Use 'Other' only if none clearly fit. " +
     "Return only products actually present. If warranty, delivery time, or MOQ " +
     "is not stated, leave it null. Never invent values. Prices must be numbers only.";
 

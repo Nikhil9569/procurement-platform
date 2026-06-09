@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 import BrochureUpload from "@/components/BrochureUpload";
+import BuyerSearch from "@/components/BuyerSearch";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -50,8 +51,7 @@ function VendorHome() {
 function BuyerHome() {
   return (
     <section className="p-8">
-      <h1 className="text-2xl text-stone-900">Buyer workspace</h1>
-      <p className="mt-2 text-stone-500">Tell us what you need and we'll find the right vendor.</p>
+      <BuyerSearch />
     </section>
   );
 }
