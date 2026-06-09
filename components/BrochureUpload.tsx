@@ -9,11 +9,20 @@ const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
 const MAX_MB = 10;
 const ACCEPTED = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
 
+type Product = {
+  product_name: string;
+  price: number;
+  warranty_months: number | null;
+  delivery_days: number | null;
+  moq: number | null;
+};
+
 export default function BrochureUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "uploading" | "extracting" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -43,27 +52,73 @@ export default function BrochureUpload() {
     const { error } = await supabase.storage.from("brochures").upload(path, file);
     if (error) { setStatus("error"); setMessage(error.message); return; }
 
+    // extract with Gemini
+    setStatus("extracting"); setMessage("");
+    const res = await fetch("/api/extract", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setStatus("error"); setMessage(data.error || "Extraction failed"); return; }
+
+    setProducts(data.products || []);
     setStatus("done");
-    setMessage("Brochure uploaded successfully.");
+    setMessage("");
   };
 
-  const reset = () => { setFile(null); setStatus("idle"); setMessage(""); };
+  const reset = () => { setFile(null); setStatus("idle"); setMessage(""); setProducts([]); };
   const sizeKB = file ? (file.size / 1024).toFixed(0) : "";
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-2xl">
       <h1 className={`${fraunces.className} text-2xl text-stone-900`}>Upload your brochure</h1>
       <p className="mt-2 text-stone-500">
         Drop a PDF or image of your product catalogue. We'll read it and pull out your products automatically.
       </p>
 
       {status === "done" ? (
-        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-xl">✓</div>
-          <p className="mt-4 font-medium text-stone-800">{message}</p>
-          <button onClick={reset} className="mt-4 text-sm font-medium text-[#c2410c] hover:underline">
-            Upload another
-          </button>
+        <div className="mt-6">
+          <h2 className={`${fraunces.className} text-xl text-stone-900`}>
+            We found {products.length} product{products.length !== 1 ? "s" : ""}
+          </h2>
+          <p className="mt-1 text-sm text-stone-500">
+            Review the details before saving. A field is left blank if the brochure didn't state it.
+          </p>
+
+          <div className="mt-4 overflow-hidden rounded-2xl border border-stone-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-stone-50 text-left text-stone-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Product</th>
+                  <th className="px-4 py-3 font-medium">Price</th>
+                  <th className="px-4 py-3 font-medium">Warranty</th>
+                  <th className="px-4 py-3 font-medium">Delivery</th>
+                  <th className="px-4 py-3 font-medium">MOQ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {products.map((p, i) => (
+                  <tr key={i} className="text-stone-800">
+                    <td className="px-4 py-3 font-medium">{p.product_name}</td>
+                    <td className="px-4 py-3">₹{p.price}</td>
+                    <td className="px-4 py-3">{p.warranty_months ? `${p.warranty_months} mo` : "—"}</td>
+                    <td className="px-4 py-3">{p.delivery_days ? `${p.delivery_days} days` : "—"}</td>
+                    <td className="px-4 py-3">{p.moq ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-5 flex gap-3">
+            <button className="rounded-xl bg-[#0c0a09] px-5 py-3 font-medium text-stone-50 hover:bg-stone-800">
+              Save to catalogue
+            </button>
+            <button onClick={reset} className="rounded-xl border border-stone-300 px-5 py-3 font-medium text-stone-700 hover:border-stone-400">
+              Start over
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -110,10 +165,10 @@ export default function BrochureUpload() {
 
           <button
             onClick={upload}
-            disabled={!file || status === "uploading"}
+            disabled={!file || status === "uploading" || status === "extracting"}
             className="mt-6 w-full rounded-xl bg-[#0c0a09] px-5 py-3.5 font-medium text-stone-50 transition-all hover:bg-stone-800 active:scale-[0.99] disabled:opacity-40"
           >
-            {status === "uploading" ? "Uploading…" : "Upload brochure"}
+            {status === "uploading" ? "Uploading…" : status === "extracting" ? "Reading your brochure…" : "Upload brochure"}
           </button>
         </>
       )}
