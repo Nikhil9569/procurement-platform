@@ -16,6 +16,8 @@ type Product = {
   warranty_months: number | null;
   delivery_days: number | null;
   moq: number | null;
+  stock?: number | null;
+  embedding?: number[] | null;
 };
 
 export default function BrochureUpload() {
@@ -75,7 +77,7 @@ export default function BrochureUpload() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
 
-    const texts = products.map(p => `Category: ${p.category.value}, Product: ${p.product_name.value}`);
+    const texts = products.map(p => `Category: ${p.category}, Product: ${p.product_name}`);
     let embeddings: number[][] = [];
     try {
       const res = await fetch("/api/embed", {
@@ -94,13 +96,13 @@ export default function BrochureUpload() {
 
     const rows = products.map((p, i) => ({
       vendor_id: user.id,
-      product_name: p.product_name.value,
-      category: p.category.value,
-      price: p.price.value,
-      warranty_months: p.warranty_months.value,
-      delivery_days: p.delivery_days.value,
-      moq: p.moq.value,
-      stock: p.stock?.value || null,
+      product_name: p.product_name,
+      category: p.category,
+      price: p.price,
+      warranty_months: p.warranty_months,
+      delivery_days: p.delivery_days,
+      moq: p.moq,
+      stock: p.stock || null,
       embedding: embeddings[i] || null,
     }));
     
