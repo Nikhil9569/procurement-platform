@@ -92,7 +92,7 @@ export default function LoginScreen() {
           </button>
 
           <p className="mt-6 text-xs leading-relaxed text-stone-400">
-            By continuing you agree to our terms. You'll choose whether you're a
+            By continuing you agree to our terms. You&apos;ll choose whether you&apos;re a
             buyer or a vendor right after signing in.
           </p>
         </div>
