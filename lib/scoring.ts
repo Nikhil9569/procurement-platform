@@ -7,7 +7,6 @@ export type CatalogItem = {
   warranty_months: number | null;
   delivery_days: number | null;
   moq: number | null;
-  stock: number | null;
   rating?: number | null;
 };
 
@@ -62,7 +61,7 @@ export function scoreVendors(items: CatalogItem[], weights: Weights) {
   // normalise each factor across all items
   const columns: Record<string, number[]> = {};
   for (const f of FACTORS) {
-    columns[f] = normalise(items.map((it) => (it[f as keyof CatalogItem] as number) ?? null), LOWER_IS_BETTER.has(f));
+    columns[f] = normalise(items.map((it) => (it as any)[f] ?? null), LOWER_IS_BETTER.has(f));
   }
 
   // weighted sum per item
