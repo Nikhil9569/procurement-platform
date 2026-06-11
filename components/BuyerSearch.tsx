@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Fraunces } from "next/font/google";
 import { createClient } from "@/lib/supabase/client";
 import { scoreVendors, PRESETS, CatalogItem } from "@/lib/scoring";
+import { useRouter } from "next/navigation";
 
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
 
@@ -24,6 +25,11 @@ export default function BuyerSearch() {
   const [priority, setPriority] = useState("balanced");
   const [quantity, setQuantity] = useState<number | "">("");
   const [deadline, setDeadline] = useState<number | "">("");
+  
+  const [searchMode, setSearchMode] = useState<"exact" | "smart">("exact");
+  const [smartQuery, setSmartQuery] = useState("");
+  const [savingRfq, setSavingRfq] = useState<string | null>(null);
+  const router = useRouter();
   
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -59,21 +65,47 @@ export default function BuyerSearch() {
   const overStockLimit = maxStock !== null && quantity !== "" && Number(quantity) > maxStock;
 
   const search = async () => {
-    if (!product || overStockLimit) return;
+    if (searchMode === "exact" && (!product || overStockLimit)) return;
+    if (searchMode === "smart" && !smartQuery.trim()) return;
+
     setLoading(true);
     setHasSearched(true);
     setNegotiationBrief([]);
     setResults([]);
 
-    // Step 1: fetch catalog rows for the selected product
-    const { data: catalogData, error: catalogErr } = await supabase
-      .from("vendor_catalog")
-      .select("id, vendor_id, product_name, category, price, warranty_months, delivery_days, moq, stock")
-      .eq("product_name", product);
+    let valid: CatalogItem[] = [];
 
-    if (catalogErr) { console.error("Catalog fetch error:", catalogErr); setLoading(false); return; }
+    if (searchMode === "exact") {
+      const { data: catalogData, error: catalogErr } = await supabase
+        .from("vendor_catalog")
+        .select("id, vendor_id, product_name, category, price, warranty_months, delivery_days, moq, stock")
+        .eq("product_name", product);
 
-    let valid = (catalogData || []) as CatalogItem[];
+      if (catalogErr) { console.error("Catalog fetch error:", catalogErr); setLoading(false); return; }
+      valid = (catalogData || []) as CatalogItem[];
+    } else {
+      try {
+        const res = await fetch("/api/embed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texts: [smartQuery] })
+        });
+        const data = await res.json();
+        if (data.embeddings && data.embeddings.length > 0) {
+          const { data: rpcData, error: rpcErr } = await supabase.rpc("match_products", {
+            query_embedding: `[${data.embeddings[0].join(',')}]`,
+            match_threshold: 0.5,
+            match_count: 50
+          });
+          if (rpcErr) throw rpcErr;
+          valid = (rpcData || []) as CatalogItem[];
+        }
+      } catch(e) {
+        console.error("Smart search error:", e);
+        setLoading(false);
+        return;
+      }
+    }
 
     // Step 2: fetch company names separately for the vendor_ids we found
     const vendorIds = [...new Set(valid.map(c => c.vendor_id))];
@@ -140,6 +172,32 @@ export default function BuyerSearch() {
 
   const savings = getSavings();
 
+  const saveRfq = async (vendorId: string, companyName: string, selectedProduct: string, selectedPrice: number) => {
+    setSavingRfq(vendorId);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    // Recalculate savings specifically for the chosen row vs the average
+    let savedAmount = 0;
+    if (results.length > 1 && quantity) {
+      const avgPrice = results.reduce((acc, r) => acc + r.price, 0) / results.length;
+      if (avgPrice > selectedPrice) {
+        savedAmount = (avgPrice - selectedPrice) * Number(quantity);
+      }
+    }
+
+    await supabase.from("rfq_history").insert({
+      buyer_id: user.id,
+      vendor_id: vendorId,
+      product_name: searchMode === "smart" ? smartQuery : selectedProduct,
+      quantity: Number(quantity) || 1,
+      price_per_unit: selectedPrice,
+      saved_amount: savedAmount,
+      priority
+    });
+    router.push("/dashboard/history");
+  };
+
   return (
     <div className="max-w-6xl w-full flex flex-col gap-8 animate-[fadeUp_0.4s_ease-out_both]">
       
@@ -171,22 +229,53 @@ export default function BuyerSearch() {
       </div>
 
       {/* RFQ Builder Form */}
-      {selectedCategory && (
-        <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm animate-[fadeUp_0.3s_ease-out_both]">
-          <h2 className={`${fraunces.className} text-xl text-stone-900 mb-6`}>Create Request for Quote (RFQ)</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            <div className="col-span-1 md:col-span-3">
-              <label className="block text-sm font-medium text-stone-700 mb-2">What do you need?</label>
-              <select
-                value={product}
-                onChange={(e) => setProduct(e.target.value)}
-                className="w-full rounded-xl border border-stone-300 p-3 bg-white outline-none focus:border-[#c2410c] focus:ring-1 focus:ring-[#c2410c]"
-              >
-                <option value="" disabled>Select a product...</option>
-                {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
+      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm animate-[fadeUp_0.3s_ease-out_both]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h2 className={`${fraunces.className} text-xl text-stone-900`}>Create Request for Quote (RFQ)</h2>
+          <div className="flex bg-stone-100 p-1 rounded-lg">
+            <button
+              onClick={() => setSearchMode("exact")}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${searchMode === "exact" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+            >
+              Exact Product
+            </button>
+            <button
+              onClick={() => setSearchMode("smart")}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${searchMode === "smart" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+            >
+              Smart Search ✨
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+          <div className="col-span-1 md:col-span-3">
+            {searchMode === "exact" ? (
+              <>
+                <label className="block text-sm font-medium text-stone-700 mb-2">What do you need?</label>
+                <select
+                  value={product}
+                  onChange={(e) => setProduct(e.target.value)}
+                  disabled={!selectedCategory}
+                  className="w-full rounded-xl border border-stone-300 p-3 bg-white outline-none focus:border-[#c2410c] focus:ring-1 focus:ring-[#c2410c] disabled:opacity-50"
+                >
+                  <option value="" disabled>{selectedCategory ? "Select a product..." : "Pick a category first..."}</option>
+                  {availableProducts.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </>
+            ) : (
+              <>
+                <label className="block text-sm font-medium text-stone-700 mb-2">Describe what you need (AI Search)</label>
+                <input
+                  type="text"
+                  value={smartQuery}
+                  onChange={(e) => setSmartQuery(e.target.value)}
+                  placeholder="e.g., high performance laptop for 4k video editing"
+                  className="w-full rounded-xl border border-stone-300 p-3 bg-white outline-none focus:border-[#c2410c] focus:ring-1 focus:ring-[#c2410c]"
+                />
+              </>
+            )}
+          </div>
 
             <div className="relative">
               <label className="block text-sm font-medium text-stone-700 mb-2">Quantity Needed</label>
@@ -242,11 +331,38 @@ export default function BuyerSearch() {
 
           <button
             onClick={search}
-            disabled={!product || loading || overStockLimit}
+            disabled={(searchMode === "exact" && (!product || overStockLimit)) || (searchMode === "smart" && !smartQuery) || loading}
             className="mt-8 w-full md:w-auto px-8 py-3.5 rounded-xl bg-[#0c0a09] text-stone-50 font-medium transition-all hover:bg-stone-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
           >
             {loading ? "Finding vendors..." : "Compare Vendors"}
           </button>
+        </div>
+
+      {/* Top Product Card */}
+      {hasSearched && !loading && results.length > 0 && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm relative overflow-hidden animate-[fadeUp_0.35s_ease-out_both]">
+          <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">🏆</div>
+          <h3 className="text-sm font-medium text-emerald-800 mb-2">Top Recommended Product</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className={`${fraunces.className} text-2xl text-emerald-950`}>
+                {results[0].product_name}
+              </p>
+              <p className="text-emerald-700 mt-1 font-medium">
+                Offered by {results[0].company_name || "Vendor"}
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div className="bg-white/60 px-4 py-2 rounded-lg border border-emerald-100">
+                <p className="text-xs text-emerald-600 font-medium">Price</p>
+                <p className="text-lg font-semibold text-emerald-900">₹{results[0].price.toLocaleString()}</p>
+              </div>
+              <div className="bg-white/60 px-4 py-2 rounded-lg border border-emerald-100">
+                <p className="text-xs text-emerald-600 font-medium">Match</p>
+                <p className="text-lg font-semibold text-emerald-900">{Math.round(results[0].score)}%</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -281,6 +397,7 @@ export default function BuyerSearch() {
                       <th className="px-6 py-4 font-medium w-32">Warranty</th>
                       <th className="px-6 py-4 font-medium w-32">MOQ</th>
                       <th className="px-6 py-4 font-medium w-32">Stock</th>
+                      <th className="px-6 py-4 font-medium w-32 text-right sticky right-0 bg-stone-50/95 backdrop-blur-sm shadow-[-8px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-stone-100 z-10">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
@@ -307,6 +424,15 @@ export default function BuyerSearch() {
                         <td className="px-6 py-5 text-stone-600">{r.warranty_months ? `${r.warranty_months} mo` : '—'}</td>
                         <td className="px-6 py-5 text-stone-600">{r.moq ?? '—'}</td>
                         <td className="px-6 py-5 text-stone-600">{r.stock ?? '—'}</td>
+                        <td className={`px-6 py-5 text-right sticky right-0 shadow-[-8px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-stone-100/50 ${i === 0 ? 'bg-[#fff7f2]' : 'bg-white'}`}>
+                          <button
+                            onClick={() => saveRfq(r.vendor_id, r.company_name || "Vendor", r.product_name, r.price)}
+                            disabled={savingRfq === r.vendor_id}
+                            className="px-4 py-2 bg-stone-900 text-white text-xs font-medium rounded-lg hover:bg-[#c2410c] transition-colors disabled:opacity-50"
+                          >
+                            {savingRfq === r.vendor_id ? "Saving..." : "Award"}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

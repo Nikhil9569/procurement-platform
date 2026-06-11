@@ -91,7 +91,24 @@ export default function BrochureUpload() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
 
-    const rows = products.map((p) => ({
+    const texts = products.map(p => `Category: ${p.category.value}, Product: ${p.product_name.value}`);
+    let embeddings: number[][] = [];
+    try {
+      const res = await fetch("/api/embed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to embed");
+      embeddings = data.embeddings;
+    } catch(e: any) {
+      setMessage(e.message);
+      setSaving(false);
+      return;
+    }
+
+    const rows = products.map((p, i) => ({
       vendor_id: user.id,
       product_name: p.product_name.value,
       category: p.category.value,
@@ -100,6 +117,7 @@ export default function BrochureUpload() {
       delivery_days: p.delivery_days.value,
       moq: p.moq.value,
       stock: p.stock?.value || null,
+      embedding: embeddings[i] || null,
     }));
     
     const { error } = await supabase.from("vendor_catalog").insert(rows);

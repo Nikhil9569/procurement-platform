@@ -48,9 +48,16 @@ function VendorHome() {
   );
 }
 
+import Link from "next/link";
+
 function BuyerHome() {
   return (
-    <section className="p-8">
+    <section className="p-8 flex flex-col items-center">
+      <div className="flex justify-end mb-6 max-w-6xl w-full">
+        <Link href="/dashboard/history" className="text-sm font-medium text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-200 px-4 py-2 rounded-lg transition-colors shadow-sm">
+          View RFQ History & Savings &rarr;
+        </Link>
+      </div>
       <BuyerSearch />
     </section>
   );
