@@ -335,12 +335,43 @@ export default function BrochureUpload() {
             <p className="mt-3 text-sm text-red-600">{message}</p>
           )}
 
+          {/* Skeleton Loader during extraction */}
+          {status === "extracting" && (
+            <div className="mt-6 rounded-2xl border border-stone-200 bg-white overflow-hidden shadow-sm animate-[fadeUp_0.3s_ease-out_both]">
+              <div className="p-5 border-b border-stone-200 bg-stone-50 flex items-center gap-3">
+                <svg className="animate-spin h-4 w-4 text-[#c2410c]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span className="text-sm font-medium text-stone-600">Gemini is reading your brochure…</span>
+              </div>
+              <div className="p-0">
+                <div className="grid grid-cols-7 gap-3 px-5 py-3 border-b border-stone-100">
+                  {["Product", "Category", "Price", "Warranty", "Delivery", "MOQ", "Stock"].map((h, i) => (
+                    <div key={i} className="h-3 bg-stone-100 rounded animate-pulse" style={{ animationDelay: `${i * 100}ms` }}></div>
+                  ))}
+                </div>
+                {Array.from({ length: 4 }).map((_, row) => (
+                  <div key={row} className="grid grid-cols-7 gap-3 px-5 py-4 border-b border-stone-50">
+                    <div className="h-4 bg-stone-200 rounded animate-pulse" style={{ animationDelay: `${row * 150}ms`, width: `${70 + Math.random() * 30}%` }}></div>
+                    <div className="h-4 bg-stone-100 rounded animate-pulse" style={{ animationDelay: `${row * 150 + 50}ms` }}></div>
+                    <div className="h-4 bg-stone-100 rounded animate-pulse w-16" style={{ animationDelay: `${row * 150 + 100}ms` }}></div>
+                    <div className="h-4 bg-stone-100 rounded animate-pulse w-12" style={{ animationDelay: `${row * 150 + 150}ms` }}></div>
+                    <div className="h-4 bg-stone-100 rounded animate-pulse w-12" style={{ animationDelay: `${row * 150 + 200}ms` }}></div>
+                    <div className="h-4 bg-stone-100 rounded animate-pulse w-10" style={{ animationDelay: `${row * 150 + 250}ms` }}></div>
+                    <div className="h-4 bg-stone-100 rounded animate-pulse w-10" style={{ animationDelay: `${row * 150 + 300}ms` }}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <button
             onClick={upload}
             disabled={!file || status === "uploading" || status === "extracting"}
-            className="mt-6 w-full rounded-xl bg-[#0c0a09] px-5 py-3.5 font-medium text-stone-50 transition-all hover:bg-stone-800 active:scale-[0.99] disabled:opacity-40"
+            className="mt-6 w-full rounded-xl bg-[#0c0a09] px-5 py-3.5 font-medium text-stone-50 transition-all hover:bg-stone-800 active:scale-[0.99] disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            {status === "uploading" ? "Uploading…" : status === "extracting" ? "Reading your brochure…" : "Upload brochure"}
+            {status === "uploading" ? (<><svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Uploading…</>) : status === "extracting" ? (<><svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Reading your brochure…</>) : "Upload brochure"}
           </button>
         </>
       )}

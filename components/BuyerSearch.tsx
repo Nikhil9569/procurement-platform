@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Fraunces } from "next/font/google";
 import { createClient } from "@/lib/supabase/client";
-import { scoreVendors, PRESETS, CatalogItem } from "@/lib/scoring";
+import { scoreVendors, PRESETS, CatalogItem, ScoreBreakdown } from "@/lib/scoring";
 import { useRouter } from "next/navigation";
 
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
@@ -33,7 +33,8 @@ export default function BuyerSearch() {
   
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [results, setResults] = useState<(CatalogItem & { score: number, company_name?: string })[]>([]);
+  const [results, setResults] = useState<(CatalogItem & { score: number, company_name?: string, breakdown?: ScoreBreakdown[] })[]>([]);
+  const [auditVendorId, setAuditVendorId] = useState<string | null>(null);
   
   const [briefLoading, setBriefLoading] = useState(false);
   const [negotiationBrief, setNegotiationBrief] = useState<string[]>([]);
@@ -332,9 +333,9 @@ export default function BuyerSearch() {
           <button
             onClick={search}
             disabled={(searchMode === "exact" && (!product || overStockLimit)) || (searchMode === "smart" && !smartQuery) || loading}
-            className="mt-8 w-full md:w-auto px-8 py-3.5 rounded-xl bg-[#0c0a09] text-stone-50 font-medium transition-all hover:bg-stone-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+            className="mt-8 w-full md:w-auto px-8 py-3.5 rounded-xl bg-[#0c0a09] text-stone-50 font-medium transition-all hover:bg-stone-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
           >
-            {loading ? "Finding vendors..." : "Compare Vendors"}
+            {loading ? (<><svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Finding vendors...</>) : "Compare Vendors"}
           </button>
         </div>
 
@@ -361,6 +362,38 @@ export default function BuyerSearch() {
                 <p className="text-xs text-emerald-600 font-medium">Match</p>
                 <p className="text-lg font-semibold text-emerald-900">{Math.round(results[0].score)}%</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Skeleton Loader */}
+      {loading && hasSearched && (
+        <div className="animate-[fadeUp_0.3s_ease-out_both]">
+          <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden shadow-sm">
+            <div className="p-6 border-b border-stone-200 bg-stone-50 flex items-center gap-3">
+              <div className="h-6 w-48 bg-stone-200 rounded-lg animate-pulse"></div>
+            </div>
+            <div className="p-0">
+              <div className="grid grid-cols-8 gap-0 px-6 py-4 border-b border-stone-100">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-3 bg-stone-100 rounded animate-pulse" style={{ animationDelay: `${i * 80}ms` }}></div>
+                ))}
+              </div>
+              {Array.from({ length: 3 }).map((_, row) => (
+                <div key={row} className="grid grid-cols-8 gap-4 px-6 py-5 border-b border-stone-50" style={{ animationDelay: `${row * 120}ms` }}>
+                  <div className="col-span-2 flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-stone-200 animate-pulse"></div>
+                    <div className="h-4 w-24 bg-stone-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="h-4 w-12 bg-stone-100 rounded animate-pulse"></div>
+                  <div className="h-4 w-16 bg-stone-100 rounded animate-pulse"></div>
+                  <div className="h-4 w-14 bg-stone-100 rounded animate-pulse"></div>
+                  <div className="h-4 w-14 bg-stone-100 rounded animate-pulse"></div>
+                  <div className="h-4 w-10 bg-stone-100 rounded animate-pulse"></div>
+                  <div className="h-4 w-10 bg-stone-100 rounded animate-pulse"></div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -412,12 +445,17 @@ export default function BuyerSearch() {
                           </div>
                         </td>
                         <td className="px-6 py-5 font-bold text-stone-900">
-                          <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setAuditVendorId(auditVendorId === r.vendor_id ? null : r.vendor_id)}
+                            className="flex items-center gap-2 group cursor-pointer hover:text-[#c2410c] transition-colors"
+                            title="Click to view scoring breakdown"
+                          >
                             <div className="h-1.5 w-12 bg-stone-100 rounded-full overflow-hidden">
                               <div className="h-full bg-[#c2410c]" style={{ width: `${r.score * 100}%` }} />
                             </div>
                             {(r.score * 100).toFixed(0)}
-                          </div>
+                            <svg className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#c2410c] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          </button>
                         </td>
                         <td className="px-6 py-5 text-stone-800">₹{r.price.toLocaleString()}</td>
                         <td className="px-6 py-5 text-stone-600">{r.delivery_days ? `${r.delivery_days} days` : '—'}</td>
@@ -474,8 +512,72 @@ export default function BuyerSearch() {
           )}
         </div>
       )}
+      {/* Audit Breakdown Modal */}
+      {auditVendorId && (() => {
+        const vendor = results.find(r => r.vendor_id === auditVendorId);
+        if (!vendor || !vendor.breakdown) return null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAuditVendorId(null)}>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out_both]" />
+            <div
+              className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-[fadeUp_0.25s_ease-out_both]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-stone-200 bg-stone-50 flex items-center justify-between">
+                <div>
+                  <h3 className={`${fraunces.className} text-lg text-stone-900`}>Scoring Breakdown</h3>
+                  <p className="text-sm text-stone-500 mt-1">{vendor.company_name}</p>
+                </div>
+                <button onClick={() => setAuditVendorId(null)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-stone-200 transition-colors text-stone-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {vendor.breakdown.map((b) => {
+                  const pct = Math.round(b.normalisedScore * 100);
+                  const weightPct = Math.round(b.weight * 100);
+                  return (
+                    <div key={b.factor}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-stone-900">{b.label}</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">{weightPct}% weight</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-stone-900">{pct}</span>
+                          <span className="text-xs text-stone-400">/100</span>
+                          {b.rawValue !== null && (
+                            <span className="text-xs text-stone-400 ml-2">
+                              (raw: {b.factor === 'price' ? `₹${b.rawValue.toLocaleString()}` : b.factor === 'delivery_days' ? `${b.rawValue}d` : b.factor === 'warranty_months' ? `${b.rawValue}mo` : b.rawValue})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${pct}%`,
+                            background: pct >= 70 ? '#059669' : pct >= 40 ? '#d97706' : '#dc2626',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="pt-4 mt-4 border-t border-stone-200 flex items-center justify-between">
+                  <span className="text-sm font-medium text-stone-700">Final Weighted Score</span>
+                  <span className={`${fraunces.className} text-2xl text-stone-900`}>{Math.round(vendor.score * 100)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <style>{`
         @keyframes fadeUp { from {opacity:0;transform:translateY(12px)} to {opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn { from {opacity:0} to {opacity:1} }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>

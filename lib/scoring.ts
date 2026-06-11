@@ -56,6 +56,15 @@ function normalise(values: (number | null)[], lowerBetter: boolean): number[] {
   });
 }
 
+export type ScoreBreakdown = {
+  factor: string;
+  label: string;
+  rawValue: number | null;
+  normalisedScore: number;   // 0..1
+  weight: number;            // effective weight after normalisation
+  weightedScore: number;     // normalisedScore * weight
+};
+
 export function scoreVendors(items: CatalogItem[], weights: Weights) {
   if (items.length === 0) return [];
 
@@ -65,12 +74,31 @@ export function scoreVendors(items: CatalogItem[], weights: Weights) {
     columns[f] = normalise(items.map((it) => (it[f as keyof CatalogItem] as number) ?? null), LOWER_IS_BETTER.has(f));
   }
 
-  // weighted sum per item
+  const FACTOR_LABELS: Record<string, string> = {
+    price: "Price",
+    delivery_days: "Delivery",
+    warranty_months: "Warranty",
+    rating: "Rating",
+  };
+
+  // weighted sum per item, with full breakdown
   const total = FACTORS.reduce((s, f) => s + weights[f], 0) || 1;
   return items
     .map((it, i) => {
-      const score = FACTORS.reduce((s, f) => s + (weights[f] / total) * columns[f][i], 0);
-      return { ...it, score: Math.round(score * 1000) / 1000 };
+      const breakdown: ScoreBreakdown[] = FACTORS.map((f) => {
+        const effectiveWeight = weights[f] / total;
+        const normalisedScore = columns[f][i];
+        return {
+          factor: f,
+          label: FACTOR_LABELS[f] || f,
+          rawValue: (it[f as keyof CatalogItem] as number) ?? null,
+          normalisedScore: Math.round(normalisedScore * 1000) / 1000,
+          weight: Math.round(effectiveWeight * 1000) / 1000,
+          weightedScore: Math.round(effectiveWeight * normalisedScore * 1000) / 1000,
+        };
+      });
+      const score = breakdown.reduce((s, b) => s + b.weightedScore, 0);
+      return { ...it, score: Math.round(score * 1000) / 1000, breakdown };
     })
     .sort((a, b) => b.score - a.score);
 }
