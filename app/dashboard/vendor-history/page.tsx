@@ -115,9 +115,9 @@ export default async function VendorHistoryPage() {
                         <div className="min-w-0">
                           <p className="font-medium text-stone-900 text-sm truncate">{file.name.replace(/^\d+-/, '')}</p>
                           <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-500">
-                            <span>{(file.metadata?.size / 1024).toFixed(0)} KB</span>
+                            <span>{file.metadata?.size ? (file.metadata.size / 1024).toFixed(0) + ' KB' : 'Unknown Size'}</span>
                             <span>&middot;</span>
-                            <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                            <span>{file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Unknown Date'}</span>
                           </div>
                         </div>
                       </div>

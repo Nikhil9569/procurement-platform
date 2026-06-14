@@ -1,12 +1,22 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Fraunces } from "next/font/google";
 import { createClient } from "@/lib/supabase/client";
 import { scoreVendors, PRESETS, CatalogItem, ScoreBreakdown } from "@/lib/scoring";
+import { haversineKm } from "@/lib/distance";
+import { geocodeAddress } from "@/lib/geocode";
 import { useRouter } from "next/navigation";
 
 const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
+
+const LocationMap = dynamic(() => import("@/components/map/LocationMap"), {
+  ssr: false,
+  loading: () => <div className="h-56 rounded-xl bg-stone-100 animate-pulse" />,
+});
+
+type Pos = { lat: number; lng: number };
 
 const OPTIONS = [
   { key: "price_critical", label: "Lowest price", desc: "Cost matters most" },
@@ -34,7 +44,10 @@ export default function BuyerSearch() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [results, setResults] = useState<(CatalogItem & { score: number, company_name?: string, contact_email?: string, breakdown?: ScoreBreakdown[] })[]>([]);
+  const [results, setResults] = useState<(CatalogItem & { score: number, company_name?: string, contact_email?: string, breakdown?: ScoreBreakdown[], distanceKm?: number | null })[]>([]);
+  const [buyerPos, setBuyerPos] = useState<Pos | null>(null);
+  const [locationAddress, setLocationAddress] = useState("");
+  const [locationSearching, setLocationSearching] = useState(false);
   const [auditVendorId, setAuditVendorId] = useState<string | null>(null);
   const [awardedRfq, setAwardedRfq] = useState<string | null>(null);
   
@@ -121,16 +134,22 @@ export default function BuyerSearch() {
       }
     }
 
-    // Step 2: fetch company names separately for the vendor_ids we found
+    // Step 2: fetch company names + coordinates separately for the vendor_ids we found
     const vendorIds = [...new Set(valid.map(c => c.vendor_id))];
     const newMap: Record<string, {name: string, email: string}> = {};
+    const coordMap: Record<string, Pos> = {};
     if (vendorIds.length > 0) {
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("id, company_name, contact_email")
+        .select("id, company_name, contact_email, latitude, longitude")
         .in("id", vendorIds);
       if (profileData) {
-        profileData.forEach(p => { if (p.company_name) newMap[p.id] = { name: p.company_name, email: p.contact_email }; });
+        profileData.forEach(p => {
+          if (p.company_name) newMap[p.id] = { name: p.company_name, email: p.contact_email };
+          if (p.latitude != null && p.longitude != null) {
+            coordMap[p.id] = { lat: p.latitude, lng: p.longitude };
+          }
+        });
       }
     }
 
@@ -142,11 +161,16 @@ export default function BuyerSearch() {
       return true;
     });
 
-    const ranked = scoreVendors(valid, PRESETS[priority]).map((r) => ({
-      ...r,
-      company_name: newMap[r.vendor_id]?.name || `Vendor ${r.vendor_id.slice(0, 8)}`,
-      contact_email: newMap[r.vendor_id]?.email,
-    }));
+    const ranked = scoreVendors(valid, PRESETS[priority]).map((r) => {
+      const vendorPos = coordMap[r.vendor_id];
+      const distanceKm = buyerPos && vendorPos ? haversineKm(buyerPos, vendorPos) : null;
+      return {
+        ...r,
+        company_name: newMap[r.vendor_id]?.name || `Vendor ${r.vendor_id.slice(0, 8)}`,
+        contact_email: newMap[r.vendor_id]?.email,
+        distanceKm,
+      };
+    });
     setResults(ranked);
 
     if (ranked.length > 0) {
@@ -178,11 +202,20 @@ export default function BuyerSearch() {
 
   const getSavings = () => {
     if (results.length < 2 || !quantity) return null;
-    const bestPrice = results[0].price;
     const avgPrice = results.reduce((acc, r) => acc + r.price, 0) / results.length;
-    if (avgPrice <= bestPrice) return null;
+    const bestPrice = results[0].price;
+    if (bestPrice >= avgPrice) return null;
+    
     const saved = (avgPrice - bestPrice) * Number(quantity);
     return Math.round(saved);
+  };
+
+  const handleAddressSearch = async () => {
+    if (!locationAddress.trim()) return;
+    setLocationSearching(true);
+    const result = await geocodeAddress(locationAddress);
+    setLocationSearching(false);
+    if (result) setBuyerPos(result);
   };
 
   const savings = getSavings();
@@ -352,6 +385,38 @@ export default function BuyerSearch() {
                 ))}
               </div>
             </div>
+
+            <div className="col-span-1 md:col-span-3 mt-4">
+              <label className="block text-sm font-medium text-stone-700 mb-2">Your location (optional — to see distance)</label>
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-stone-50 p-4 rounded-xl border border-stone-200">
+                <div className="flex-1 w-full">
+                  <div className="flex gap-2">
+                    <input 
+                      value={locationAddress}
+                      onChange={e => setLocationAddress(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleAddressSearch(); }}
+                      placeholder="e.g. Noida Sector 62" 
+                      className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#c2410c]"
+                    />
+                    <button 
+                      onClick={handleAddressSearch}
+                      disabled={locationSearching || !locationAddress.trim()}
+                      className="px-4 py-2 bg-stone-200 text-stone-700 text-sm font-medium rounded-lg hover:bg-stone-300 transition-colors disabled:opacity-50"
+                    >
+                      {locationSearching ? "..." : "Find"}
+                    </button>
+                  </div>
+                  {buyerPos && (
+                    <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                      <span>📍</span> Location set. Distance will be calculated.
+                    </p>
+                  )}
+                </div>
+                <div className="w-full sm:w-64 shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
+                  <LocationMap value={buyerPos} onPick={(p) => setBuyerPos(p)} height={120} />
+                </div>
+              </div>
+            </div>
           </div>
 
           <button
@@ -461,6 +526,7 @@ export default function BuyerSearch() {
                       <th className="px-6 py-4 font-medium w-32">MOQ</th>
                       <th className="px-6 py-4 font-medium w-32">Stock</th>
                       <th className="px-6 py-4 font-medium w-32">Rating</th>
+                      <th className="px-6 py-4 font-medium w-32">Distance</th>
                       <th className="px-6 py-4 font-medium w-32 text-right sticky right-0 bg-stone-50/95 backdrop-blur-sm shadow-[-8px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-stone-100 z-10">Action</th>
                     </tr>
                   </thead>
@@ -500,6 +566,7 @@ export default function BuyerSearch() {
                             </div>
                           ) : '—'}
                         </td>
+                        <td className="px-6 py-5 text-stone-600">{r.distanceKm != null ? `≈ ${Math.round(r.distanceKm)} km` : '—'}</td>
                         <td className="px-6 py-5 text-right sticky right-0 shadow-[-8px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-stone-100/50 ${i === 0 ? 'bg-[#fff7f2]' : 'bg-white'}">
                           <button
                             onClick={() => {
