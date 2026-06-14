@@ -44,7 +44,7 @@ export default function BuyerSearch() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [results, setResults] = useState<(CatalogItem & { score: number, company_name?: string, contact_email?: string, breakdown?: ScoreBreakdown[], distanceKm?: number | null })[]>([]);
+  const [results, setResults] = useState<(CatalogItem & { score: number, company_name?: string, contact_email?: string, breakdown?: ScoreBreakdown[], distanceKm?: number | null, vendorPos?: Pos | null })[]>([]);
   const [buyerPos, setBuyerPos] = useState<Pos | null>(null);
   const [locationAddress, setLocationAddress] = useState("");
   const [locationSearching, setLocationSearching] = useState(false);
@@ -169,6 +169,7 @@ export default function BuyerSearch() {
         company_name: newMap[r.vendor_id]?.name || `Vendor ${r.vendor_id.slice(0, 8)}`,
         contact_email: newMap[r.vendor_id]?.email,
         distanceKm,
+        vendorPos,
       };
     });
     setResults(ranked);
@@ -388,34 +389,38 @@ export default function BuyerSearch() {
 
             <div className="col-span-1 md:col-span-3 mt-4">
               <label className="block text-sm font-medium text-stone-700 mb-2">Your location (optional — to see distance)</label>
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-stone-50 p-4 rounded-xl border border-stone-200">
-                <div className="flex-1 w-full">
-                  <div className="flex gap-2">
-                    <input 
-                      value={locationAddress}
-                      onChange={e => setLocationAddress(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") handleAddressSearch(); }}
-                      placeholder="e.g. Noida Sector 62" 
-                      className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#c2410c]"
-                    />
-                    <button 
-                      onClick={handleAddressSearch}
-                      disabled={locationSearching || !locationAddress.trim()}
-                      className="px-4 py-2 bg-stone-200 text-stone-700 text-sm font-medium rounded-lg hover:bg-stone-300 transition-colors disabled:opacity-50"
-                    >
-                      {locationSearching ? "..." : "Find"}
-                    </button>
-                  </div>
-                  {buyerPos && (
-                    <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
-                      <span>📍</span> Location set. Distance will be calculated.
-                    </p>
-                  )}
-                </div>
-                <div className="w-full sm:w-64 shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100">
-                  <LocationMap value={buyerPos} onPick={(p) => setBuyerPos(p)} height={120} />
-                </div>
+              
+              <div className="flex gap-2 mb-3">
+                <input 
+                  value={locationAddress}
+                  onChange={e => setLocationAddress(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleAddressSearch(); }}
+                  placeholder="e.g. Connaught Place, Delhi" 
+                  className="flex-1 rounded-xl border border-stone-300 px-4 py-3 bg-white outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all"
+                />
+                <button 
+                  onClick={handleAddressSearch}
+                  disabled={locationSearching || !locationAddress.trim()}
+                  className="px-6 py-3 bg-[#e8a28e] text-white font-medium rounded-xl hover:bg-[#d68c76] transition-colors disabled:opacity-50"
+                >
+                  {locationSearching ? "..." : "Find"}
+                </button>
               </div>
+              
+              <div className="w-full overflow-hidden rounded-xl border border-stone-200 bg-stone-100 shadow-sm">
+                <LocationMap 
+                  value={buyerPos} 
+                  vendorPos={results.length > 0 && hasSearched ? results[0].vendorPos : null}
+                  onPick={(p) => setBuyerPos(p)} 
+                  height={220} 
+                />
+              </div>
+              
+              {buyerPos && (
+                <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                  <span>📍</span> Location set. Distance will be calculated.
+                </p>
+              )}
             </div>
           </div>
 
