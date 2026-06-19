@@ -69,11 +69,13 @@ export default function VendorLocation({ onSaveComplete }: VendorLocationProps) 
     setSaving(false);
     if (!error) {
       setSaved(true);
-      if (onSaveComplete) {
-        setTimeout(() => {
-          onSaveComplete();
-        }, 1200);
-      }
+    }
+  };
+
+  const handleContinue = () => {
+    setSaved(false);
+    if (onSaveComplete) {
+      onSaveComplete();
     }
   };
 
@@ -143,17 +145,8 @@ export default function VendorLocation({ onSaveComplete }: VendorLocationProps) 
       )}
 
       {/* Footer / Actions */}
-      <div className="flex items-center gap-4 pt-4 border-t border-neutral-100 justify-between">
+      <div className="flex items-center gap-4 pt-4 border-t border-neutral-100 justify-end">
         <div className="flex items-center gap-2">
-          {pos && (
-            <span className="text-xs  text-[#6B7280]">
-              GPS: {pos.lat.toFixed(5)}, {pos.lng.toFixed(5)}
-            </span>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {saved && <span className="text-sm font-semibold text-emerald-600 animate-fade-in">✓ Location Saved!</span>}
           <button
             onClick={save}
             disabled={!pos || saving}
@@ -163,6 +156,27 @@ export default function VendorLocation({ onSaveComplete }: VendorLocationProps) 
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {saved && (
+        <div className="fixed inset-0 bg-black/35 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 text-xl font-bold mb-4 shadow-inner">
+              ✓
+            </div>
+            <h3 className="text-lg font-bold text-stone-900">Location Added</h3>
+            <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+              Your service location coordinates and delivery radius have been successfully updated in your profile.
+            </p>
+            <button
+              onClick={handleContinue}
+              className="mt-6 w-full py-2.5 bg-[#0F1E3C] hover:bg-[#1A315C] text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer shadow"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

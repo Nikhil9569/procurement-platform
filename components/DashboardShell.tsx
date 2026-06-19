@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Menu, Bell, User } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import DashboardSidebar from "./DashboardSidebar";
 import SignOutButton from "./SignOutButton";
 
@@ -71,15 +71,6 @@ export default function DashboardShell({
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Notification Bell */}
-            <button className="p-2 text-neutral-400 hover:text-[#0F1E3C] rounded-lg hover:bg-neutral-50 transition-colors relative cursor-pointer">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E8A838] rounded-full ring-2 ring-white" />
-            </button>
-
-            {/* Vertical Divider */}
-            <div className="h-6 w-px bg-neutral-200" />
-
             {/* Profile Avatar & Info */}
             <div className="relative" ref={dropdownRef}>
               <button 

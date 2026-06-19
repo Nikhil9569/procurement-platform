@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
   const mime = getMimeType(path);
   const model = genAI.getGenerativeModel({
-    model:"gemini-2.5-flash-lite",
+    model:"gemini-2.5-flash",
     generationConfig: { responseMimeType:"application/json", responseSchema: schema },
   });
 

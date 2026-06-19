@@ -74,6 +74,7 @@ export default function BrochureUpload({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeUploadedPath, setActiveUploadedPath] = useState<string | null>(uploadedPath);
+  const [showConfidence, setShowConfidence] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = useMemo(() => createClient(), []);
 
@@ -187,23 +188,20 @@ export default function BrochureUpload({
 
     // 2. Insert new active catalog
     const { error } = await supabase.from("vendor_catalog").insert(rows);
-    setSaving(false);
-    
     if (!error) {
-      // Save history snapshot
+      // Save details to brochure_uploads table for history page modal viewing
       await supabase.from("brochure_uploads").insert({
         vendor_id: user.id,
-        file_name: fileDetails?.name || activeUploadedPath?.split('/').pop() || 'Unknown File',
-        file_path: activeUploadedPath || 'unknown',
-        file_size: fileDetails?.size || 'Unknown Size',
+        file_name: file?.name || fileDetails?.name || activeUploadedPath?.split('/').pop() || "Uploaded Brochure",
+        file_path: activeUploadedPath || uploadedPath || "",
+        file_size: file ? `${(file.size / 1024).toFixed(0)} KB` : (fileDetails?.size || "Unknown Size"),
         parsed_data: products
       });
 
       setSaved(true);
-      setTimeout(() => {
-        onPublishComplete();
-      }, 1500);
+      setSaving(false);
     } else {
+      setSaving(false);
       setMessage(error.message);
     }
   };
@@ -334,12 +332,24 @@ export default function BrochureUpload({
             Review the {products.length} products found by our AI model. Tap any field to override prices, warranty specs, or stock counts.
           </p>
         </div>
-        
-        {fileDetails && (
-          <div className="px-3 py-1.5 rounded-lg bg-[#faf8f5] border border-neutral-200 text-xs font-semibold text-[#0F1E3C] flex items-center gap-1.5 w-fit">
-            <span>📄</span> {fileDetails.name} ({fileDetails.size})
-          </div>
-        )}
+        <div className="flex items-center gap-2.5 bg-[#faf8f5] border border-neutral-200 rounded-lg px-3 py-1.5 w-fit">
+          <span className="text-xs font-bold text-[#0F1E3C] uppercase tracking-wider">AI Confidence</span>
+          <button
+            type="button"
+            onClick={() => setShowConfidence(!showConfidence)}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              showConfidence ? "bg-[#0F1E3C]" : "bg-neutral-300"
+            }`}
+            role="switch"
+            aria-checked={showConfidence}
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                showConfidence ? "translate-x-4" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Catalog Table */}
@@ -349,12 +359,12 @@ export default function BrochureUpload({
             <tr>
               <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[320px] text-[#0F1E3C]">Product Name</th>
               <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[180px] text-[#0F1E3C]">Category</th>
-              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider w-28 text-[#0F1E3C]">Price (₹)</th>
-              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider w-28 text-[#0F1E3C]">Warranty (mo)</th>
-              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider w-28 text-[#0F1E3C]">Delivery (days)</th>
-              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider w-24 text-[#0F1E3C]">MOQ</th>
-              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider w-24 text-[#0F1E3C]">Stock</th>
-              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider w-24 text-[#0F1E3C]">Rating</th>
+              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[140px] text-[#0F1E3C]">Price (₹)</th>
+              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[140px] text-[#0F1E3C]">Warranty (mo)</th>
+              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[145px] text-[#0F1E3C]">Delivery (days)</th>
+              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[120px] text-[#0F1E3C]">MOQ</th>
+              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[120px] text-[#0F1E3C]">Stock</th>
+              <th className="px-4 py-4 font-bold text-xs uppercase tracking-wider min-w-[120px] text-[#0F1E3C]">Rating</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
@@ -362,23 +372,23 @@ export default function BrochureUpload({
               <tr key={i} className="text-neutral-800 transition-colors hover:bg-neutral-50/50">
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.product_name?.confidence} />
+                    {showConfidence && <ConfidenceBadge level={p.product_name?.confidence} />}
                     <input 
                       type="text" 
                       value={p.product_name?.value ||""} 
                       onChange={(e) => updateProduct(i,"product_name", e.target.value)}
-                      className="w-full bg-transparent outline-none font-semibold text-[#0F1E3C]"
+                      className="flex-1 min-w-0 bg-transparent outline-none font-semibold text-[#0F1E3C]"
                       placeholder="Product Name"
                     />
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.category?.confidence} />
+                    {showConfidence && <ConfidenceBadge level={p.category?.confidence} />}
                     <select 
                       value={p.category?.value ||"Other"} 
                       onChange={(e) => updateProduct(i,"category", e.target.value)}
-                      className="w-full bg-transparent outline-none text-xs text-[#0F1E3C] uppercase tracking-wider appearance-none cursor-pointer font-bold"
+                      className="flex-1 min-w-0 bg-transparent outline-none text-xs text-[#0F1E3C] uppercase tracking-wider appearance-none cursor-pointer font-bold"
                     >
                       {["Laptops","Desktops","Monitors","Keyboards","Mice","Storage","Networking","Accessories","Other"].map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -388,67 +398,67 @@ export default function BrochureUpload({
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.price?.confidence} />
+                    {showConfidence && <ConfidenceBadge level={p.price?.confidence} />}
                     <input 
                       type="number" 
                       value={p.price?.value ??""} 
                       onChange={(e) => updateProduct(i,"price", e.target.value ? Number(e.target.value) : 0)}
-                      className="w-full bg-transparent outline-none font-medium tabular-nums"
+                      className="flex-1 min-w-0 bg-transparent outline-none font-medium tabular-nums"
                       placeholder="0"
                     />
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.warranty_months?.confidence} />
+                    {showConfidence && <ConfidenceBadge level={p.warranty_months?.confidence} />}
                     <input 
                       type="number" 
                       value={p.warranty_months?.value ??""} 
                       onChange={(e) => updateProduct(i,"warranty_months", e.target.value ? Number(e.target.value) : null)}
-                      className="w-full bg-transparent outline-none font-medium tabular-nums"
+                      className="flex-1 min-w-0 bg-transparent outline-none font-medium tabular-nums"
                       placeholder="—"
                     />
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.delivery_days?.confidence} />
+                    {showConfidence && <ConfidenceBadge level={p.delivery_days?.confidence} />}
                     <input 
                       type="number" 
                       value={p.delivery_days?.value ??""} 
                       onChange={(e) => updateProduct(i,"delivery_days", e.target.value ? Number(e.target.value) : null)}
-                      className="w-full bg-transparent outline-none font-medium tabular-nums"
+                      className="flex-1 min-w-0 bg-transparent outline-none font-medium tabular-nums"
                       placeholder="—"
                     />
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.moq?.confidence} />
+                    {showConfidence && <ConfidenceBadge level={p.moq?.confidence} />}
                     <input 
                       type="number" 
                       value={p.moq?.value ??""} 
                       onChange={(e) => updateProduct(i,"moq", e.target.value ? Number(e.target.value) : null)}
-                      className="w-full bg-transparent outline-none font-medium tabular-nums"
+                      className="flex-1 min-w-0 bg-transparent outline-none font-medium tabular-nums"
                       placeholder="—"
                     />
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.stock?.confidence ||'high'} />
+                    {showConfidence && <ConfidenceBadge level={p.stock?.confidence ||'high'} />}
                     <input 
                       type="number" 
                       value={p.stock?.value ??""} 
                       onChange={(e) => updateProduct(i,"stock", e.target.value ? Number(e.target.value) : null)}
-                      className="w-full bg-transparent outline-none font-medium tabular-nums"
+                      className="flex-1 min-w-0 bg-transparent outline-none font-medium tabular-nums"
                       placeholder="—"
                     />
                   </div>
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2 bg-white rounded border border-transparent focus-within:border-[#0F1E3C] focus-within:ring-2 focus-within:ring-[#0F1E3C]/10 px-2 py-1.5">
-                    <ConfidenceBadge level={p.rating?.confidence} />
+                    {showConfidence && <ConfidenceBadge level={p.rating?.confidence} />}
                     <input 
                       type="number" 
                       step="0.1"
@@ -456,7 +466,7 @@ export default function BrochureUpload({
                       max="5"
                       value={p.rating?.value ??""} 
                       onChange={(e) => updateProduct(i,"rating", e.target.value ? Number(e.target.value) : null)}
-                      className="w-full bg-transparent outline-none font-medium tabular-nums"
+                      className="flex-1 min-w-0 bg-transparent outline-none font-medium tabular-nums"
                       placeholder="—"
                     />
                   </div>
@@ -467,11 +477,6 @@ export default function BrochureUpload({
         </table>
       </div>
 
-      {saved ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 text-sm font-semibold flex items-center gap-2 animate-fade-in">
-          <span>✓</span> Successfully saved {products.length} products to your workspace catalog! Completing onboarding...
-        </div>
-      ) : (
         <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-neutral-100 justify-between">
           <div className="flex gap-2">
             {onBack && (
@@ -494,8 +499,28 @@ export default function BrochureUpload({
             disabled={saving}
             className="rounded-xl bg-[#0F1E3C] hover:bg-[#1A315C] px-6 py-3 font-semibold text-white disabled:opacity-50 transition-colors cursor-pointer text-sm"
           >
-            {saving ?"Publishing Catalogue..." :"Publish Catalogue ✓"}
+            {saving ?"Publishing Catalogue..." :"Publish Catalogue"}
           </button>
+        </div>
+
+      {/* Confirmation Modal */}
+      {saved && (
+        <div className="fixed inset-0 bg-black/35 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 text-xl font-bold mb-4 shadow-inner">
+              ✓
+            </div>
+            <h3 className="text-lg font-bold text-stone-900">Catalog Published</h3>
+            <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+              Successfully saved {products.length} products to your workspace catalog!
+            </p>
+            <button
+              onClick={() => setSaved(false)}
+              className="mt-6 w-full py-2.5 bg-[#0F1E3C] hover:bg-[#1A315C] text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer shadow"
+            >
+              Continue
+            </button>
+          </div>
         </div>
       )}
 
