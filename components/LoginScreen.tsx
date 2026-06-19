@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Fraunces } from "next/font/google";
-import { createClient } from "@/lib/supabase/client";
-
-const fraunces = Fraunces({ subsets: ["latin"], weight: ["400", "500", "600"] });
+import { useState } from"react";
+import { createClient } from"@/lib/supabase/client";
 
 export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
@@ -13,97 +10,127 @@ export default function LoginScreen() {
   const signIn = async () => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      provider:"google",
+      options: { redirectTo:`${window.location.origin}/auth/callback` },
     });
     if (error) setLoading(false);
   };
 
   return (
-    <div className="min-h-screen w-full grid lg:grid-cols-[1.1fr_1fr] bg-[#faf8f5]">
-      {/* LEFT — brand panel */}
-      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-[#0c0a09] p-12 text-stone-200">
-        {/* warm glow */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-70"
-          style={{
-            background:
-              "radial-gradient(60% 50% at 25% 20%, rgba(194,90,40,0.28), transparent 70%), radial-gradient(50% 50% at 90% 90%, rgba(180,120,60,0.18), transparent 70%)",
-          }}
-        />
-        {/* grain */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.07] mix-blend-overlay"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          }}
-        />
+    <div className="relative min-h-screen w-full bg-[#faf8f5] flex flex-col justify-between overflow-hidden">
+      {/* Animated SVG Geometric Grid / Mesh Background */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40">
+        <svg className="absolute inset-0 w-full h-full stroke-neutral-300/60 [mask-image:radial-gradient(80%_80%_at_50%_40%,white,transparent)]" aria-hidden="true">
+          <defs>
+            <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse" x="-10" y="-10">
+              <path d="M.5 50V.5H50" fill="none" strokeWidth="0.5" strokeDasharray="3 3" />
+              <circle cx="50" cy="50" r="1.5" className="fill-neutral-400/80" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" className="animate-grid-drift" />
+        </svg>
+        {/* Subtle decorative geometric meshes */}
+        <svg viewBox="0 0 100 100" className="absolute top-1/4 left-10 w-48 h-48 text-neutral-300/30 stroke-current fill-none stroke-[0.2]" strokeLinecap="round">
+          <polygon points="50,15 90,35 90,80 50,95 10,80 10,35" />
+          <line x1="50" y1="15" x2="50" y2="95" />
+          <line x1="10" y1="35" x2="90" y2="80" />
+          <line x1="90" y1="35" x2="10" y2="80" />
+        </svg>
+        <svg viewBox="0 0 100 100" className="absolute bottom-1/4 right-10 w-64 h-64 text-neutral-300/30 stroke-current fill-none stroke-[0.2]" strokeLinecap="round">
+          <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" />
+          <line x1="50" y1="5" x2="50" y2="95" />
+          <line x1="5" y1="25" x2="95" y2="75" />
+          <line x1="95" y1="25" x2="5" y2="75" />
+        </svg>
+      </div>
 
-        <div className="relative animate-[fadeUp_0.6s_ease-out_both]">
-          <span className="text-sm font-medium tracking-[0.2em] text-stone-400">
-            PROCURE<span className="text-[#e2814e]">·</span>AI
+      {/* Top Header */}
+      <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 sm:px-8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-base font-bold tracking-[0.2em] text-[#0F1E3C]">
+            PROCURE<span className="text-[#E8A838]">·</span>AI
           </span>
         </div>
+      </header>
 
-        <div className="relative max-w-md">
-          <h1
-            className={`${fraunces.className} text-5xl leading-[1.05] text-stone-50 animate-[fadeUp_0.7s_ease-out_0.1s_both]`}
-          >
+      {/* Main Hero Section */}
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-6 py-12 sm:px-8 grid lg:grid-cols-12 gap-12 lg:gap-8 items-center flex-1">
+        
+        {/* Left column: Messaging */}
+        <div className="lg:col-span-7 flex flex-col justify-center text-left max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0F1E3C]/5 border border-[#0F1E3C]/10 text-xs font-semibold text-[#0F1E3C] mb-6 w-fit animate-fade-in">
+            <span className="flex h-2 w-2 rounded-full bg-[#E8A838] animate-pulse" />
+            AI-Powered Enterprise Procurement
+          </div>
+          
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-normal leading-[1.1] text-[#0F1E3C] tracking-tight animate-fade-up">
             Procurement,
             <br />
-            <span className="italic text-[#e2814e]">decided</span> in minutes.
+            <span className="italic text-[#E8A838]">decided</span> in minutes.
           </h1>
-          <p className="mt-6 text-stone-400 leading-relaxed animate-[fadeUp_0.7s_ease-out_0.25s_both]">
-            Upload a brochure, set your priorities, and let the engine rank the
-            right vendor — with every decision explained.
+          
+          <p className="mt-6 text-lg text-[#6B7280] leading-relaxed max-w-xl animate-fade-up [animation-delay:150ms]">
+            Upload a vendor catalogue, outline your business constraints, and let our recommendation engine score the ideal suppliers — with every decision explained.
           </p>
         </div>
 
-        <div className="relative flex gap-8 text-xs text-stone-500 animate-[fadeUp_0.7s_ease-out_0.4s_both]">
-          <span>AI brochure parsing</span>
-          <span>Transparent scoring</span>
-          <span>Human-approved deals</span>
+        {/* Right column: Login Card */}
+        <div className="lg:col-span-5 flex justify-center lg:justify-end w-full animate-fade-up [animation-delay:300ms]">
+          <div className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl border border-neutral-200/80 p-8 sm:p-10 shadow-[0_8px_30px_rgb(15,30,60,0.04)]">
+            <h2 className="text-2xl font-bold text-[#0F1E3C] tracking-tight">
+              Get Started
+            </h2>
+            <p className="mt-2 text-sm text-[#6B7280]">
+              Sign in to run RFQs, analyze vendor profiles, or showcase your catalogue.
+            </p>
+
+            <button
+              onClick={signIn}
+              disabled={loading}
+              className="group mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-5 py-4 font-semibold text-[#0F1E3C] shadow-sm transition-all hover:border-neutral-400 hover:bg-neutral-50 active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+            >
+              <GoogleIcon />
+              {loading ?"Connecting to Google..." :"Continue with Google"}
+            </button>
+
+            <p className="mt-6 text-xs leading-relaxed text-[#6B7280]/80">
+              Secured with Supabase Auth. By proceeding, you agree to our terms. You can select your role as a Buyer or a Vendor immediately after sign-in.
+            </p>
+          </div>
         </div>
-      </div>
+      </main>
 
-      {/* RIGHT — sign in */}
-      <div className="flex items-center justify-center p-8">
-        <div className="w-full max-w-sm animate-[fadeUp_0.6s_ease-out_0.2s_both]">
-          {/* mobile brand mark */}
-          <span className="lg:hidden block mb-10 text-sm font-medium tracking-[0.2em] text-stone-500">
-            PROCURE<span className="text-[#c2410c]">·</span>AI
-          </span>
-
-          <h2 className={`${fraunces.className} text-3xl text-stone-900`}>
-            Welcome
-          </h2>
-          <p className="mt-2 text-stone-500">
-            Sign in to find vendors or list your products.
-          </p>
-
-          <button
-            onClick={signIn}
-            disabled={loading}
-            className="group mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-stone-300 bg-white px-5 py-3.5 font-medium text-stone-800 shadow-sm transition-all hover:border-stone-400 hover:shadow-md active:scale-[0.99] disabled:opacity-60"
-          >
-            <GoogleIcon />
-            {loading ? "Connecting…" : "Continue with Google"}
-          </button>
-
-          <p className="mt-6 text-xs leading-relaxed text-stone-400">
-            By continuing you agree to our terms. You'll choose whether you're a
-            buyer or a vendor right after signing in.
-          </p>
+      {/* Trust Badges Footer */}
+      <footer className="relative z-10 w-full max-w-7xl mx-auto px-6 py-8 sm:px-8 border-t border-neutral-200/50 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex flex-wrap items-center gap-y-4 gap-x-8 sm:gap-x-12 text-xs font-semibold text-[#0F1E3C]/70 tracking-wider uppercase">
+          <div className="flex items-center gap-2">
+            <span className="text-[#E8A838] text-sm font-bold">✓</span>
+            <span>AI brochure parsing</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#E8A838] text-sm font-bold">✓</span>
+            <span>Transparent scoring</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#E8A838] text-sm font-bold">✓</span>
+            <span>Human-approved deals</span>
+          </div>
         </div>
-      </div>
+        <p className="text-xs text-[#6B7280] font-medium">
+          &copy; {new Date().getFullYear()} Procure AI. All rights reserved.
+        </p>
+      </footer>
 
+      {/* Grid Drift Animation CSS */}
       <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
+        @keyframes gridDrift {
+          0% { background-position: 0px 0px; }
+          100% { background-position: 50px 50px; }
         }
-      `}</style>
+        .animate-grid-drift {
+          animation: gridDrift 20s linear infinite;
+        }
+`}</style>
     </div>
   );
 }

@@ -1,29 +1,27 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import dynamic from "next/dynamic";
-import { Fraunces } from "next/font/google";
-import { createClient } from "@/lib/supabase/client";
-import { scoreVendors, PRESETS, CatalogItem, ScoreBreakdown } from "@/lib/scoring";
-import { haversineKm } from "@/lib/distance";
-import { geocodeAddress } from "@/lib/geocode";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from"react";
+import { createClient } from"@/lib/supabase/client";
+import { scoreVendors, PRESETS, CatalogItem, ScoreBreakdown } from"@/lib/scoring";
+import { haversineKm } from"@/lib/distance";
+import { useRouter } from"next/navigation";
 
-const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
-
-const LocationMap = dynamic(() => import("@/components/map/LocationMap"), {
-  ssr: false,
-  loading: () => <div className="h-56 rounded-xl bg-stone-100 animate-pulse" />,
-});
+// Modular Subcomponents
+import VendorSearchForm from"./VendorSearchForm";
+import ActiveConstraints from"./ActiveConstraints";
+import DeliveryDestination from"./DeliveryDestination";
+import VendorResultsGrid from"./VendorResultsGrid";
 
 type Pos = { lat: number; lng: number };
 
-const OPTIONS = [
-  { key: "price_critical", label: "Lowest price", desc: "Cost matters most" },
-  { key: "fast_delivery", label: "Fast delivery", desc: "I need it quickly" },
-  { key: "quality_first", label: "Quality & warranty", desc: "Reliability over price" },
-  { key: "balanced", label: "Balanced", desc: "Weigh everything evenly" },
-];
+type EnhancedVendor = CatalogItem & {
+  score: number;
+  company_name?: string;
+  contact_email?: string;
+  breakdown?: ScoreBreakdown[];
+  distanceKm?: number | null;
+  vendorPos?: Pos | null;
+};
 
 export default function BuyerSearch() {
   const [catalogMeta, setCatalogMeta] = useState<{product_name: string, category: string, stock: number | null}[]>([]);
@@ -43,11 +41,18 @@ export default function BuyerSearch() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [results, setResults] = useState<(CatalogItem & { score: number, company_name?: string, contact_email?: string, breakdown?: ScoreBreakdown[], distanceKm?: number | null, vendorPos?: Pos | null })[]>([]);
+  const [results, setResults] = useState<EnhancedVendor[]>([]);
+  
+  // Scoring Sliders State
+  const [priceWeight, setPriceWeight] = useState(33);
+  const [proximityWeight, setProximityWeight] = useState(33);
+  const [deliveryWeight, setDeliveryWeight] = useState(34);
+
+  // Delivery destination location state
   const [buyerPos, setBuyerPos] = useState<Pos | null>(null);
   const [locationAddress, setLocationAddress] = useState("");
-  const [locationSearching, setLocationSearching] = useState(false);
-  const [auditVendorId, setAuditVendorId] = useState<string | null>(null);
+  const [maxDistance, setMaxDistance] = useState<number>(500); // 500 ="Any"
+
   const [awardedRfq, setAwardedRfq] = useState<string | null>(null);
 
   const [feedbackModal, setFeedbackModal] = useState<{vendorId: string, companyName: string, product: string, price: number} | null>(null);
@@ -59,6 +64,7 @@ export default function BuyerSearch() {
 
   const supabase = useMemo(() => createClient(), []);
 
+  // Fetch unique catalogue metadata on mount
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("vendor_catalog").select("product_name, category, stock");
@@ -90,16 +96,16 @@ export default function BuyerSearch() {
     setLoading(true);
     setHasSearched(true);
     setSearchError(null);
-    setNegotiationBrief([]);
     setResults([]);
 
     let valid: CatalogItem[] = [];
 
-    if (searchMode === "exact") {
+    if (activeSearchMode ==="catalog") {
+      const activeProduct = product;
       const { data: catalogData, error: catalogErr } = await supabase
         .from("vendor_catalog")
         .select("id, vendor_id, product_name, category, price, warranty_months, delivery_days, moq, stock")
-        .eq("product_name", product);
+        .eq("product_name", activeProduct);
 
       if (catalogErr) {
         console.error("Catalog fetch error:", catalogErr);
@@ -111,14 +117,14 @@ export default function BuyerSearch() {
     } else {
       try {
         const res = await fetch("/api/embed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ texts: [smartQuery] })
+          method:"POST",
+          headers: {"Content-Type":"application/json" },
+          body: JSON.stringify({ texts: [activeSmartQuery] })
         });
         const data = await res.json();
         if (data.embeddings && data.embeddings.length > 0) {
           const { data: rpcData, error: rpcErr } = await supabase.rpc("match_products", {
-            query_embedding: `[${data.embeddings[0].join(',')}]`,
+            query_embedding:`[${data.embeddings[0].join(',')}]`,
             match_threshold: 0.5,
             match_count: 50
           });
@@ -127,7 +133,7 @@ export default function BuyerSearch() {
         }
       } catch(e) {
         console.error("Smart search error:", e);
-        setSearchError("Smart search failed to connect. Please try again.");
+        setSearchError("Smart search failed. Please try again.");
         setLoading(false);
         return;
       }
@@ -152,51 +158,41 @@ export default function BuyerSearch() {
     }
 
     valid = valid.filter((c) => {
-      if (quantity && c.moq && quantity < c.moq) return false;
-      if (quantity && c.stock && quantity > c.stock) return false;
+      if (activeQuantity && c.moq && activeQuantity < c.moq) return false;
+      if (activeQuantity && c.stock && activeQuantity > c.stock) return false;
       if (deadline && c.delivery_days && c.delivery_days > deadline) return false;
       return true;
     });
 
-    const ranked = scoreVendors(valid, PRESETS[priority]).map((r) => {
+    // Scoring weights presets mapping
+    let customWeights = PRESETS[priority] || PRESETS.balanced;
+    if (priority ==="custom") {
+      const sum = priceWeight + deliveryWeight + 50; // Baseline rating/warranty constants
+      customWeights = {
+        price: priceWeight / sum,
+        delivery_days: deliveryWeight / sum,
+        warranty_months: 25 / sum,
+        rating: 25 / sum,
+      };
+    }
+
+    // Apply ranking calculations & proximity calculations
+    let ranked = scoreVendors(valid, customWeights).map((r) => {
       const vendorPos = coordMap[r.vendor_id];
-      const distanceKm = buyerPos && vendorPos ? haversineKm(buyerPos, vendorPos) : null;
+      const distanceKm = activeBuyerPos && vendorPos ? haversineKm(activeBuyerPos, vendorPos) : null;
       return {
         ...r,
-        company_name: newMap[r.vendor_id]?.name || `Vendor ${r.vendor_id.slice(0, 8)}`,
+        company_name: newMap[r.vendor_id]?.name ||`Vendor ${r.vendor_id.slice(0, 8)}`,
         contact_email: newMap[r.vendor_id]?.email,
         distanceKm,
         vendorPos,
       };
     });
-    setResults(ranked);
 
-    if (ranked.length > 0) {
-      setBriefLoading(true);
-      try {
-        const res = await fetch("/api/negotiate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            priority,
-            vendors: ranked.slice(0, 3).map(r => ({
-              company: r.company_name,
-              price: r.price,
-              delivery: r.delivery_days,
-              warranty: r.warranty_months,
-              score: r.score,
-            }))
-          }),
-        });
-        const briefData = await res.json();
-        if (briefData.bullets) setNegotiationBrief(briefData.bullets);
-      } catch (e) {
-        console.error("Failed to load brief", e);
-      }
-      setBriefLoading(false);
+    // Filter by max distance radius (if not"Any" which is 500)
+    if (maxDistance < 500) {
+      ranked = ranked.filter(r => r.distanceKm == null || r.distanceKm <= maxDistance);
     }
-    setLoading(false);
-  };
 
   const getSavings = () => {
     if (results.length < 2 || !quantity) return null;
@@ -207,19 +203,27 @@ export default function BuyerSearch() {
     return Math.round(saved);
   };
 
-  const handleAddressSearch = async () => {
-    if (!locationAddress.trim()) return;
-    setLocationSearching(true);
-    const result = await geocodeAddress(locationAddress);
-    setLocationSearching(false);
-    if (result) setBuyerPos(result);
+  // Quick preset query handler
+  const handleTryPreset = async () => {
+    setSearchMode("semantic");
+    setSmartQuery("Office supplies");
+    setQuantity(500);
+    setLocationAddress("Mumbai, India");
+    const mumbaiPos = { lat: 19.0760, lng: 72.8777 };
+    setBuyerPos(mumbaiPos);
+
+    // Trigger search instantly
+    await search({
+      searchMode:"semantic",
+      smartQuery:"Office supplies",
+      quantity: 500,
+      locationAddress:"Mumbai, India",
+      buyerPos: mumbaiPos
+    });
   };
 
-  const savings = getSavings();
-
-  const saveRfq = async (vendorId: string, companyName: string, selectedProduct: string, selectedPrice: number, rating?: number, notes?: string) => {
+  const handleNegotiate = async (vendorId: string, companyName: string, selectedProduct: string, selectedPrice: number) => {
     setSavingRfq(vendorId);
-    setFeedbackModal(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -231,21 +235,28 @@ export default function BuyerSearch() {
       }
     }
 
-    await supabase.from("rfq_history").insert({
+    const { data: newRfq } = await supabase.from("rfq_history").insert({
       buyer_id: user.id,
       vendor_id: vendorId,
-      product_name: searchMode === "smart" ? smartQuery : selectedProduct,
+      product_name: searchMode ==="semantic" ? smartQuery : selectedProduct,
       quantity: Number(quantity) || 1,
       price_per_unit: selectedPrice,
       saved_amount: savedAmount,
       priority,
-      experience_rating: rating || null,
-      feedback_notes: notes || null
-    });
+      experience_rating: null,
+      feedback_notes: null
+    }).select().single();
+
     setAwardedRfq(vendorId);
+    setSavingRfq(null);
+
     setTimeout(() => {
-      router.push("/dashboard/history");
-    }, 1500);
+      if (newRfq?.id) {
+        router.push(`/dashboard/deals/${newRfq.id}`);
+      } else {
+        router.push("/dashboard/deals");
+      }
+    }, 1000);
   };
 
   if (catalogMeta.length === 0) {
@@ -461,7 +472,6 @@ export default function BuyerSearch() {
             </div>
           </div>
         </div>
-      )}
 
       {/* Results Section */}
       {hasSearched && !loading && (
@@ -612,6 +622,16 @@ export default function BuyerSearch() {
               )}
             </div>
           )}
+
+          {/* Dynamic Grid Results */}
+          <VendorResultsGrid
+            vendors={results}
+            loading={loading}
+            hasSearched={hasSearched}
+            onNegotiate={handleNegotiate}
+            onAward={handleAward}
+            onTryQuery={handleTryPreset}
+          />
         </div>
       )}
 
@@ -696,19 +716,13 @@ export default function BuyerSearch() {
                 Submit & Save
               </button>
             </div>
-            <button onClick={() => setFeedbackModal(null)} className="absolute top-4 right-4 text-stone-400 hover:text-stone-900">
+            <button onClick={() => setFeedbackModal(null)} className="absolute top-4 right-4 text-neutral-400 hover:text-[#0F1E3C] cursor-pointer">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
         </div>
       )}
 
-      <style>{`
-        @keyframes fadeUp { from {opacity:0;transform:translateY(12px)} to {opacity:1;transform:translateY(0)} }
-        @keyframes fadeIn { from {opacity:0} to {opacity:1} }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }

@@ -5,24 +5,29 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import SignOutButton from "./SignOutButton";
 
-export default function DashboardSidebar({ role, email }: { role: string; email: string }) {
+type DashboardSidebarProps = {
+  role: string;
+  onLinkClick?: () => void;
+};
+
+export default function DashboardSidebar({ role, onLinkClick }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   const buyerLinks = [
-    { name: "Compare Vendors", href: "/dashboard", icon: "🔍" },
-    { name: "Leaderboard", href: "/dashboard/leaderboard", icon: "🏆" },
-    { name: "RFQ History", href: "/dashboard/history", icon: "📜" },
-    { name: "Profile", href: "/dashboard/profile", icon: "👤" },
+    { name:"Compare Vendors", href:"/dashboard", icon: <Search className="w-5 h-5" /> },
+    { name:"Negotiations", href:"/dashboard/deals", icon: <Handshake className="w-5 h-5" /> },
+    { name:"Leaderboard", href:"/dashboard/leaderboard", icon: <Trophy className="w-5 h-5" /> },
+    { name:"RFQ History", href:"/dashboard/history", icon: <History className="w-5 h-5" /> },
   ];
 
   const vendorLinks = [
-    { name: "Upload Brochure", href: "/dashboard", icon: "📄" },
-    { name: "Awards & History", href: "/dashboard/vendor-history", icon: "📜" },
-    { name: "Profile", href: "/dashboard/profile", icon: "👤" },
+    { name:"Onboarding & Products", href:"/dashboard", icon: <Upload className="w-5 h-5" /> },
+    { name:"Negotiations", href:"/dashboard/deals", icon: <Handshake className="w-5 h-5" /> },
+    { name:"Awards & History", href:"/dashboard/vendor-history", icon: <History className="w-5 h-5" /> },
   ];
 
-  const links = role === "buyer" ? buyerLinks : vendorLinks;
+  const links = role ==="buyer" ? buyerLinks : vendorLinks;
 
   // close the drawer whenever the route changes (mobile)
   useEffect(() => { setOpen(false); }, [pathname]);

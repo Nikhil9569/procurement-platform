@@ -1,11 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { Fraunces } from "next/font/google";
-import Link from "next/link";
+import { createClient } from"@/lib/supabase/server";
+import { redirect } from"next/navigation";
+import Link from"next/link";
 
-const fraunces = Fraunces({ subsets: ["latin"], weight: ["500", "600"] });
 
-export const dynamic = 'force-dynamic';
+export const dynamic ='force-dynamic';
 
 export default async function VendorHistoryPage() {
   const supabase = await createClient();
@@ -25,7 +23,7 @@ export default async function VendorHistoryPage() {
       price_per_unit,
       created_at,
       buyer_id
-    `)
+`)
     .eq("vendor_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -34,7 +32,7 @@ export default async function VendorHistoryPage() {
   let buyerMap: Record<string, string> = {};
   if (buyerIds.length > 0) {
     const { data: profiles } = await supabase.from("profiles").select("id, company_name").in("id", buyerIds);
-    if (profiles) profiles.forEach(p => buyerMap[p.id] = p.company_name || "Unknown Buyer");
+    if (profiles) profiles.forEach(p => buyerMap[p.id] = p.company_name ||"Unknown Buyer");
   }
 
   // Fetch Brochure Upload History
@@ -44,21 +42,21 @@ export default async function VendorHistoryPage() {
     .list(user.id, {
       limit: 50,
       offset: 0,
-      sortBy: { column: 'created_at', order: 'desc' },
+      sortBy: { column:'created_at', order:'desc' },
     });
 
   return (
     <main className="min-h-screen bg-[#faf8f5] p-8">
       <div className="max-w-6xl mx-auto animate-[fadeUp_0.4s_ease-out_both]">
         <div className="flex items-center gap-4 mb-8">
-          <h1 className={`${fraunces.className} text-3xl text-stone-900`}>Vendor History</h1>
+          <h1 className={`text-3xl text-stone-900`}>Vendor History</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Awards Section */}
           <div>
-            <h2 className={`${fraunces.className} text-xl text-stone-900 mb-4 flex items-center gap-2`}>
+            <h2 className={`text-xl text-stone-900 mb-4 flex items-center gap-2`}>
               <span className="text-[#c2410c]">🏆</span> Won RFQs
             </h2>
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
@@ -80,7 +78,7 @@ export default async function VendorHistoryPage() {
                       </div>
                       <div className="flex justify-between items-end text-sm text-stone-500">
                         <div>
-                          <p>Buyer: <span className="font-medium text-stone-700">{buyerMap[rfq.buyer_id] || "Buyer"}</span></p>
+                          <p>Buyer: <span className="font-medium text-stone-700">{buyerMap[rfq.buyer_id] ||"Buyer"}</span></p>
                           <p className="mt-0.5">{rfq.quantity} units @ ₹{rfq.price_per_unit.toLocaleString()}</p>
                         </div>
                         <span className="text-xs">{new Date(rfq.created_at).toLocaleDateString()}</span>
@@ -94,7 +92,7 @@ export default async function VendorHistoryPage() {
 
           {/* Upload History Section */}
           <div>
-            <h2 className={`${fraunces.className} text-xl text-stone-900 mb-4 flex items-center gap-2`}>
+            <h2 className={`text-xl text-stone-900 mb-4 flex items-center gap-2`}>
               <span className="text-[#c2410c]">📄</span> Brochure Uploads
             </h2>
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
@@ -110,14 +108,14 @@ export default async function VendorHistoryPage() {
                     <li key={file.id} className="p-5 flex items-center justify-between hover:bg-stone-50/50 transition-colors">
                       <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-10 h-10 shrink-0 bg-stone-100 rounded-lg flex items-center justify-center text-lg">
-                          {file.name.toLowerCase().endsWith('.csv') ? '📊' : file.name.toLowerCase().endsWith('.pdf') ? '📕' : '🖼️'}
+                          {file.name.toLowerCase().endsWith('.csv') ?'📊' : file.name.toLowerCase().endsWith('.pdf') ?'📕' :'🖼️'}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium text-stone-900 text-sm truncate">{file.name.replace(/^\d+-/, '')}</p>
+                          <p className="font-medium text-stone-900 text-sm truncate">{file.name.replace(/^\d+-/,'')}</p>
                           <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-500">
-                            <span>{file.metadata?.size ? (file.metadata.size / 1024).toFixed(0) + ' KB' : 'Unknown Size'}</span>
+                            <span>{file.metadata?.size ? (file.metadata.size / 1024).toFixed(0) +' KB' :'Unknown Size'}</span>
                             <span>&middot;</span>
-                            <span>{file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Unknown Date'}</span>
+                            <span>{file.created_at ? new Date(file.created_at).toLocaleDateString() :'Unknown Date'}</span>
                           </div>
                         </div>
                       </div>
