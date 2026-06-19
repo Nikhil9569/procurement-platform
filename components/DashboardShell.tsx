@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from"react";
-import { Menu, Bell } from"lucide-react";
-import DashboardSidebar from"./DashboardSidebar";
-import SignOutButton from"./SignOutButton";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { Menu, Bell, User } from "lucide-react";
+import DashboardSidebar from "./DashboardSidebar";
+import SignOutButton from "./SignOutButton";
 
 type DashboardShellProps = {
   children: React.ReactNode;
@@ -100,12 +101,23 @@ export default function DashboardShell({
 
               {/* Dropdown Menu */}
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-neutral-200/60 py-2 z-50 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-neutral-200/60 py-2 z-50 animate-fade-in text-left">
                   <div className="px-4 py-2 border-b border-neutral-100 sm:hidden">
                     <p className="text-xs font-semibold text-gray-900 truncate">{email}</p>
                     <p className="text-[10px] text-gray-500 font-medium uppercase mt-0.5">{role}</p>
                   </div>
-                  <div className="px-2 pt-2">
+                  <div className="px-2 py-1">
+                    <Link
+                      href="/dashboard/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#6B7280] hover:bg-neutral-50 hover:text-[#0F1E3C] transition-colors cursor-pointer"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>View Profile</span>
+                    </Link>
+                  </div>
+                  <div className="h-px bg-neutral-100 my-1 mx-2" />
+                  <div className="px-2 pb-1">
                     <SignOutButton />
                   </div>
                 </div>
