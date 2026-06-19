@@ -123,3 +123,10 @@ create policy "Buyers can insert own RFQ history"
 on public.rfq_history for insert
 to authenticated
 with check (buyer_id = auth.uid());
+
+-- 6. Add new profile fields for registration onboarding
+alter table public.profiles add column if not exists full_name text;
+alter table public.profiles add column if not exists phone_number text;
+alter table public.profiles add column if not exists address text;
+alter table public.profiles add column if not exists service_radius double precision;
+
