@@ -1,6 +1,7 @@
+require("dotenv").config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const genAI = new GoogleGenerativeAI("AQ.Ab8RN6KzjbkdF9lPfANyOQVamGUCA9G_4o1d0B0V7Xjodx1ojA");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_DIM);
 const model = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
 
 async function run() {

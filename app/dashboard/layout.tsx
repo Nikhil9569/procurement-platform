@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import DashboardSidebar from "@/components/DashboardSidebar";
+import { redirect } from"next/navigation";
+import { createClient } from"@/lib/supabase/server";
+import DashboardShell from"@/components/DashboardShell";
 
 export default async function DashboardLayout({
   children,
@@ -16,13 +16,15 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, company_name")
     .eq("id", user.id)
     .single();
 
   if (!profile?.role) {
     redirect("/select-role");
   }
+
+  const userInitial = user.email ? user.email.charAt(0).toUpperCase() :"U";
 
   return (
     <div className="flex min-h-screen bg-[#faf8f5]">

@@ -1,10 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
-import { Fraunces } from "next/font/google";
-import LeaderboardView from "./LeaderboardView";
+import { createClient } from"@/lib/supabase/server";
+import LeaderboardView from"./LeaderboardView";
 
-const fraunces = Fraunces({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
-export const dynamic = 'force-dynamic';
+export const dynamic ='force-dynamic';
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
@@ -13,7 +11,7 @@ export default async function LeaderboardPage() {
   const { data: vendors } = await supabase
     .from("profiles")
     .select("id, company_name, contact_email")
-    .eq("role", "vendor");
+    .eq("role","vendor");
 
   // 2. Fetch Catalog Ratings (Static brochure quality)
   const { data: catalog } = await supabase
@@ -24,7 +22,7 @@ export default async function LeaderboardPage() {
   const { data: history } = await supabase
     .from("rfq_history")
     .select("vendor_id, experience_rating")
-    .not("experience_rating", "is", null);
+    .not("experience_rating","is", null);
 
   if (!vendors || !catalog) {
     return <div className="p-8">Error loading leaderboard data.</div>;
@@ -39,7 +37,7 @@ export default async function LeaderboardPage() {
     const vHistory = (history || []).filter(h => h.vendor_id === v.id);
 
     // Calculate Average Catalog Rating (0-5)
-    const validCatalogRatings = vCatalog.filter(c => typeof c.rating === 'number');
+    const validCatalogRatings = vCatalog.filter(c => typeof c.rating ==='number');
     const avgCatalogRating = validCatalogRatings.length > 0
       ? validCatalogRatings.reduce((sum, c) => sum + (c.rating || 0), 0) / validCatalogRatings.length
       : 0;
@@ -64,8 +62,8 @@ export default async function LeaderboardPage() {
 
     return {
       id: v.id,
-      company_name: v.company_name || "Unknown Vendor",
-      contact_email: v.contact_email || "No email",
+      company_name: v.company_name ||"Unknown Vendor",
+      contact_email: v.contact_email ||"No email",
       categories,
       avgCatalogRating,
       avgExpRating,
@@ -80,7 +78,7 @@ export default async function LeaderboardPage() {
   return (
     <div className="p-8 max-w-6xl mx-auto animate-[fadeUp_0.4s_ease-out_both]">
       <div className="mb-8">
-        <h1 className={`${fraunces.className} text-3xl text-stone-900`}>Vendor Leaderboard</h1>
+        <h1 className={`text-3xl text-stone-900`}>Vendor Leaderboard</h1>
         <p className="mt-2 text-stone-500">Discover the top-rated suppliers based on AI analysis and verified buyer feedback.</p>
       </div>
 
