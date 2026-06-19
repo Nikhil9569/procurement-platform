@@ -212,36 +212,133 @@ export default function BrochureUpload({
           </p>
         </div>
 
-        {status !=="uploading" && status !=="extracting" ? (
-          <>
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
-              onClick={() => inputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[240px]
-                ${dragging 
-                  ?"border-[#E8A838] bg-[#E8A838]/5" 
-                  :"border-neutral-300 bg-white hover:border-[#0F1E3C]/40 hover:bg-neutral-50/50"}`}
-            >
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".pdf,image/png,image/jpeg,image/webp,.csv"
-                className="hidden"
-                onChange={(e) => pick(e.target.files?.[0])}
-              />
-              <div className="h-12 w-12 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 mb-4">
-                <svg className="w-6 h-6 stroke-current fill-none" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5l5-5 5 5m-5-5v12"/>
-                </svg>
-              </div>
-              <p className="text-sm font-semibold text-[#0F1E3C]">
-                Click to browse files or drag and drop
-              </p>
-              <p className="text-xs text-[#6B7280] mt-1.5">
-                PDF, PNG, JPG, WEBP, or CSV · max {MAX_MB}MB
-              </p>
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-stone-50 text-left text-stone-500 border-b border-stone-200">
+                <tr>
+  <th className="px-4 py-3 font-medium min-w-[240px]">Product</th>
+  <th className="px-4 py-3 font-medium min-w-[150px]">Category</th>
+  <th className="px-4 py-3 font-medium min-w-[120px]">Price (₹)</th>
+  <th className="px-4 py-3 font-medium min-w-[110px]">Warranty (mo)</th>
+  <th className="px-4 py-3 font-medium min-w-[110px]">Delivery (days)</th>
+  <th className="px-4 py-3 font-medium min-w-[90px]">MOQ</th>
+  <th className="px-4 py-3 font-medium min-w-[90px]">Stock</th>
+</tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {products.map((p, i) => (
+                  <tr key={i} className="text-stone-800 transition-colors hover:bg-stone-50/50">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center bg-white rounded border border-transparent focus-within:border-[#c2410c] focus-within:ring-1 focus-within:ring-[#c2410c]/20 px-1 py-0.5">
+                        <ConfidenceDot level={p.product_name?.confidence} />
+                        <input 
+                          type="text" 
+                          value={p.product_name?.value || ""} 
+                          onChange={(e) => updateProduct(i, "product_name", e.target.value)}
+                          className="w-full bg-transparent outline-none font-medium text-stone-900 placeholder:text-stone-300"
+                          placeholder="Product Name"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center bg-white rounded border border-transparent focus-within:border-[#c2410c] focus-within:ring-1 focus-within:ring-[#c2410c]/20 px-1 py-0.5">
+                        <ConfidenceDot level={p.category?.confidence} />
+                        <select 
+                          value={p.category?.value || "Other"} 
+                          onChange={(e) => updateProduct(i, "category", e.target.value)}
+                          className="w-full bg-transparent outline-none text-xs text-stone-600 uppercase tracking-wider appearance-none cursor-pointer"
+                        >
+                          {["Laptops", "Desktops", "Monitors", "Keyboards", "Mice", "Storage", "Networking", "Accessories", "Other"].map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center bg-white rounded border border-transparent focus-within:border-[#c2410c] focus-within:ring-1 focus-within:ring-[#c2410c]/20 px-1 py-0.5">
+                        <ConfidenceDot level={p.price?.confidence} />
+                        <input 
+                          type="number" 
+                          value={p.price?.value ?? ""} 
+                          onChange={(e) => updateProduct(i, "price", e.target.value ? Number(e.target.value) : 0)}
+                          className="w-full bg-transparent outline-none tabular-nums"
+                          placeholder="0"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center bg-white rounded border border-transparent focus-within:border-[#c2410c] focus-within:ring-1 focus-within:ring-[#c2410c]/20 px-1 py-0.5">
+                        <ConfidenceDot level={p.warranty_months?.confidence} />
+                        <input 
+                          type="number" 
+                          value={p.warranty_months?.value ?? ""} 
+                          onChange={(e) => updateProduct(i, "warranty_months", e.target.value ? Number(e.target.value) : null)}
+                          className="w-full bg-transparent outline-none tabular-nums"
+                          placeholder="—"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center bg-white rounded border border-transparent focus-within:border-[#c2410c] focus-within:ring-1 focus-within:ring-[#c2410c]/20 px-1 py-0.5">
+                        <ConfidenceDot level={p.delivery_days?.confidence} />
+                        <input 
+                          type="number" 
+                          value={p.delivery_days?.value ?? ""} 
+                          onChange={(e) => updateProduct(i, "delivery_days", e.target.value ? Number(e.target.value) : null)}
+                          className="w-full bg-transparent outline-none tabular-nums"
+                          placeholder="—"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center bg-white rounded border border-transparent focus-within:border-[#c2410c] focus-within:ring-1 focus-within:ring-[#c2410c]/20 px-1 py-0.5">
+                        <ConfidenceDot level={p.moq?.confidence} />
+                        <input 
+                          type="number" 
+                          value={p.moq?.value ?? ""} 
+                          onChange={(e) => updateProduct(i, "moq", e.target.value ? Number(e.target.value) : null)}
+                          className="w-full bg-transparent outline-none tabular-nums"
+                          placeholder="—"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center bg-white rounded border border-transparent focus-within:border-[#c2410c] focus-within:ring-1 focus-within:ring-[#c2410c]/20 px-1 py-0.5">
+                        <ConfidenceDot level={p.stock?.confidence || 'high'} />
+                        <input 
+                          type="number" 
+                          value={p.stock?.value ?? ""} 
+                          onChange={(e) => updateProduct(i, "stock", e.target.value ? Number(e.target.value) : null)}
+                          className="w-full bg-transparent outline-none tabular-nums"
+                          placeholder="—"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {saved ? (
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800">
+              ✓ {products.length} product{products.length !== 1 ? "s" : ""} added to your catalogue.
+              <button onClick={reset} className="ml-3 font-medium text-[#c2410c] hover:underline">
+                Upload another
+              </button>
+            </div>
+          ) : (
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={save}
+                disabled={saving}
+                className="rounded-xl bg-[#0c0a09] px-5 py-3 font-medium text-stone-50 hover:bg-stone-800 disabled:opacity-50 transition-colors"
+              >
+                {saving ? "Saving…" : "Save to catalogue"}
+              </button>
+              <button onClick={reset} className="rounded-xl border border-stone-300 px-5 py-3 font-medium text-stone-700 hover:border-stone-400 bg-white transition-colors">
+                Start over
+              </button>
             </div>
 
             {file && (
