@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from"react";
-import { Menu, Bell } from"lucide-react";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { Menu, Bell, User } from "lucide-react";
 import DashboardSidebar from"./DashboardSidebar";
 import SignOutButton from"./SignOutButton";
 
@@ -105,7 +106,17 @@ export default function DashboardShell({
                     <p className="text-xs font-semibold text-gray-900 truncate">{email}</p>
                     <p className="text-[10px] text-gray-500 font-medium uppercase mt-0.5">{role}</p>
                   </div>
-                  <div className="px-2 pt-2">
+                  <div className="px-2 pt-2 pb-1 border-b border-neutral-100">
+                    <Link 
+                      href="/dashboard/profile" 
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#0F1E3C] hover:bg-neutral-50 rounded-lg transition-colors w-full"
+                    >
+                      <User className="w-4 h-4 text-neutral-500" />
+                      Profile
+                    </Link>
+                  </div>
+                  <div className="px-2 pt-1">
                     <SignOutButton />
                   </div>
                 </div>

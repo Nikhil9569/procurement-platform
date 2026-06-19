@@ -173,9 +173,32 @@ export default function BrochureUpload({
       embedding: embeddings[i] || null,
     }));
     
+    // 1. Delete old active catalog to prevent duplicates
+    const { error: deleteErr } = await supabase
+      .from("vendor_catalog")
+      .delete()
+      .eq("vendor_id", user.id);
+
+    if (deleteErr) {
+      setSaving(false);
+      setMessage("Failed to clear old catalog: " + deleteErr.message);
+      return;
+    }
+
+    // 2. Insert new active catalog
     const { error } = await supabase.from("vendor_catalog").insert(rows);
     setSaving(false);
+    
     if (!error) {
+      // Save history snapshot
+      await supabase.from("brochure_uploads").insert({
+        vendor_id: user.id,
+        file_name: fileDetails?.name || activeUploadedPath?.split('/').pop() || 'Unknown File',
+        file_path: activeUploadedPath || 'unknown',
+        file_size: fileDetails?.size || 'Unknown Size',
+        parsed_data: products
+      });
+
       setSaved(true);
       setTimeout(() => {
         onPublishComplete();

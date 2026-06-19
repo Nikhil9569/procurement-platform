@@ -1,6 +1,8 @@
 import { createClient } from"@/lib/supabase/server";
 import { redirect } from"next/navigation";
-import Link from"next/link";
+import Link from "next/link";
+import UploadHistoryList from "@/components/UploadHistoryList";
+import { Trophy, FileText } from "lucide-react";
 
 
 export const dynamic ='force-dynamic';
@@ -36,14 +38,11 @@ export default async function VendorHistoryPage() {
   }
 
   // Fetch Brochure Upload History
-  const { data: files, error: filesErr } = await supabase
-    .storage
-    .from("brochures")
-    .list(user.id, {
-      limit: 50,
-      offset: 0,
-      sortBy: { column:'created_at', order:'desc' },
-    });
+  const { data: uploads, error: uploadsErr } = await supabase
+    .from("brochure_uploads")
+    .select("*")
+    .eq("vendor_id", user.id)
+    .order("created_at", { ascending: false });
 
   return (
     <main className="min-h-screen bg-[#faf8f5] p-8">
@@ -57,7 +56,7 @@ export default async function VendorHistoryPage() {
           {/* Awards Section */}
           <div>
             <h2 className={`text-xl text-stone-900 mb-4 flex items-center gap-2`}>
-              <span className="text-[#c2410c]">🏆</span> Won RFQs
+              <Trophy className="w-5 h-5 text-[#c2410c]" /> Won RFQs
             </h2>
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
               {awardsErr ? (
@@ -93,35 +92,17 @@ export default async function VendorHistoryPage() {
           {/* Upload History Section */}
           <div>
             <h2 className={`text-xl text-stone-900 mb-4 flex items-center gap-2`}>
-              <span className="text-[#c2410c]">📄</span> Brochure Uploads
+              <FileText className="w-5 h-5 text-[#c2410c]" /> Brochure Uploads
             </h2>
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
-              {filesErr ? (
-                <div className="p-8 text-center text-red-500 text-sm">{filesErr.message}</div>
-              ) : !files || files.length === 0 ? (
+              {uploadsErr ? (
+                <div className="p-8 text-center text-red-500 text-sm">{uploadsErr.message}</div>
+              ) : !uploads || uploads.length === 0 ? (
                 <div className="p-8 text-center text-stone-500 text-sm">
                   You haven't uploaded any brochures yet.
                 </div>
               ) : (
-                <ul className="divide-y divide-stone-100">
-                  {files.map((file) => (
-                    <li key={file.id} className="p-5 flex items-center justify-between hover:bg-stone-50/50 transition-colors">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-10 h-10 shrink-0 bg-stone-100 rounded-lg flex items-center justify-center text-lg">
-                          {file.name.toLowerCase().endsWith('.csv') ?'📊' : file.name.toLowerCase().endsWith('.pdf') ?'📕' :'🖼️'}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-stone-900 text-sm truncate">{file.name.replace(/^\d+-/,'')}</p>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-500">
-                            <span>{file.metadata?.size ? (file.metadata.size / 1024).toFixed(0) +' KB' :'Unknown Size'}</span>
-                            <span>&middot;</span>
-                            <span>{file.created_at ? new Date(file.created_at).toLocaleDateString() :'Unknown Date'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <UploadHistoryList uploads={uploads} />
               )}
             </div>
           </div>
