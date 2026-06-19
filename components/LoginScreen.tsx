@@ -58,10 +58,7 @@ export default function LoginScreen() {
         
         {/* Left column: Messaging */}
         <div className="lg:col-span-7 flex flex-col justify-center text-left max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0F1E3C]/5 border border-[#0F1E3C]/10 text-xs font-semibold text-[#0F1E3C] mb-6 w-fit animate-fade-in">
-            <span className="flex h-2 w-2 rounded-full bg-[#E8A838] animate-pulse" />
-            AI-Powered Enterprise Procurement
-          </div>
+          
           
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-normal leading-[1.1] text-[#0F1E3C] tracking-tight animate-fade-up">
             Procurement,

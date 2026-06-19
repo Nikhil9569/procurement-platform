@@ -30,10 +30,20 @@ export default function DashboardSidebar({ role, onLinkClick }: DashboardSidebar
   return (
     <aside className="w-64 bg-white border-r border-neutral-200/80 flex flex-col h-screen sticky top-0 shrink-0 z-20">
       {/* Brand logo header */}
-      <div className="h-16 flex items-center px-6 border-b border-neutral-200/60 bg-white">
+      <div className="h-16 flex items-center justify-between px-6 border-b border-neutral-200/60 bg-white">
         <span className="text-sm font-bold tracking-[0.2em] text-[#0F1E3C]">
           PROCURE<span className="text-[#E8A838]">·</span>AI
         </span>
+        {onLinkClick && (
+          <button
+            onClick={onLinkClick}
+            className="p-1.5 rounded-lg hover:bg-neutral-50 text-neutral-400 hover:text-[#0F1E3C] transition-colors cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Nav Link List */}
