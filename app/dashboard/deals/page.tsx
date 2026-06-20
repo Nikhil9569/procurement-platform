@@ -82,8 +82,8 @@ export default async function DealsListPage() {
             <h3 className="text-sm font-bold text-[#0F1E3C]">No negotiations active</h3>
             <p className="text-xs text-[#6B7280] max-w-sm mx-auto">
               {isBuyer 
-                ?"Award an RFQ from the Compare Vendors tab to open a direct negotiation room with a supplier." 
-                :"Awaiting incoming bids. Keep your service areas and catalogues up to date to matching request parameters."}
+                ? "Click 'Negotiate' on a vendor card from the Compare Vendors tab to open a direct negotiation room with a supplier." 
+                : "Awaiting incoming bids. Keep your service areas and catalogues up to date to matching request parameters."}
             </p>
             {isBuyer && (
               <Link

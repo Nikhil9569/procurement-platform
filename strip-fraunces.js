@@ -3,7 +3,6 @@ const path = require('path');
 
 const files = [
   'app/dashboard/history/page.tsx',
-  'app/dashboard/leaderboard/page.tsx',
   'app/dashboard/profile/page.tsx',
   'app/dashboard/vendor-history/page.tsx'
 ];

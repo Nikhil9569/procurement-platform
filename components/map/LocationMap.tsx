@@ -1,6 +1,6 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap, Circle } from"react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap, Circle, ZoomControl } from "react-leaflet";
 import { useEffect } from"react";
 import L from"leaflet";
 import"leaflet/dist/leaflet.css";
@@ -51,11 +51,12 @@ export default function LocationMap({
 }) {
   const center: [number, number] = value ? [value.lat, value.lng] : (vendorPos ? [vendorPos.lat, vendorPos.lng] : [28.4744, 77.504]);
   return (
-    <MapContainer center={center} zoom={11} style={{ height, width:"100%", borderRadius: 12, zIndex: 0 }}>
+    <MapContainer center={center} zoom={11} style={{ height, width: "100%", borderRadius: 12, zIndex: 0 }} zoomControl={false}>
       <TileLayer
         attribution='&copy; OpenStreetMap contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <ZoomControl position="bottomleft" />
       {onPick && <ClickHandler onPick={onPick} />}
       <Recenter value={value} vendorPos={vendorPos} radius={radius} />
       

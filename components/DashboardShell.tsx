@@ -37,20 +37,20 @@ export default function DashboardShell({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Mobile Sidebar Overlay */}
+    <div className="flex min-h-screen bg-[#F8F7F4]">
+      {/* Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-neutral-900/50 z-20 md:hidden transition-opacity"
+          className="fixed inset-0 bg-neutral-900/50 z-20 transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar Drawer */}
       <div
         className={`fixed inset-y-0 left-0 transform ${
-          sidebarOpen ?"translate-x-0" :"-translate-x-full"
-        } md:relative md:translate-x-0 transition duration-200 ease-in-out z-30 flex-shrink-0`}
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } transition duration-200 ease-in-out z-30 flex-shrink-0`}
       >
         <DashboardSidebar role={role} onLinkClick={() => setSidebarOpen(false)} />
       </div>
@@ -61,12 +61,12 @@ export default function DashboardShell({
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 -ml-2 text-neutral-500 hover:text-[#0F1E3C] rounded-lg hover:bg-neutral-50 transition-colors md:hidden"
+              className="p-2 -ml-2 text-neutral-500 hover:text-[#0F1E3C] rounded-lg hover:bg-neutral-50 transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
             <h1 className="text-sm font-semibold text-gray-900 tracking-wide uppercase hidden sm:block">
-              {companyName ||"Workspace"}
+              {companyName || "Workspace"}
             </h1>
           </div>
 

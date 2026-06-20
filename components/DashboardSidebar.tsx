@@ -15,7 +15,6 @@ export default function DashboardSidebar({ role, onLinkClick }: DashboardSidebar
   const buyerLinks = [
     { name:"Compare Vendors", href:"/dashboard", icon: <Search className="w-5 h-5" /> },
     { name:"Negotiations", href:"/dashboard/deals", icon: <Handshake className="w-5 h-5" /> },
-    { name:"Leaderboard", href:"/dashboard/leaderboard", icon: <Trophy className="w-5 h-5" /> },
     { name:"RFQ History", href:"/dashboard/history", icon: <History className="w-5 h-5" /> },
   ];
 

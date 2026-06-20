@@ -46,7 +46,7 @@ export default function VendorSearchForm({
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5 text-left space-y-4">
+    <div className="space-y-5 text-left">
       
       {/* Header Info */}
       <div className="space-y-1">
