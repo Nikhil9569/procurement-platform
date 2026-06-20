@@ -18,6 +18,8 @@ type VendorSearchFormProps = {
   setSla: (s: string) => void;
   onSearch: () => void;
   loading: boolean;
+  semanticQuery: string;
+  setSemanticQuery: (q: string) => void;
 };
 
 export default function VendorSearchForm({
@@ -35,6 +37,8 @@ export default function VendorSearchForm({
   setSla,
   onSearch,
   loading,
+  semanticQuery,
+  setSemanticQuery,
 }: VendorSearchFormProps) {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -130,25 +134,36 @@ export default function VendorSearchForm({
             </div>
           </div>
         ) : (
-          /* Semantic query description */
-          <div className="flex flex-col animate-fade-in">
-            <label className="text-sm font-medium text-gray-700 mb-1.5">
-              Describe requirement
-            </label>
-            <textarea
-              value={category} // Wait! In page.tsx: const [category, setCategory] = useState('') is also used to bind category or similar. 
-              // Wait, the prompt lists these states in page.tsx:
-              // const [mode, setMode] = useState<'catalog' |'semantic'>('catalog')
-              // const [category, setCategory] = useState('')
-              // const [item, setItem] = useState('')
-              // const [volume, setVolume] = useState('')
-              // const [sla, setSla] = useState('')
-              // Since it doesn't list a separate"semanticQuery" state, let's use the"category" or"item" state to hold the semantic search text if they are in semantic mode,
-              // or let's just bind it to`category` state, which is clean and lets us reuse the variable!
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g. Find ISO-certified steel suppliers in Pune..."
-              className="w-full min-h-[96px] p-3 border border-neutral-200 rounded-lg text-sm text-[#111827] bg-white outline-none focus:border-[#0F1E3C] focus:ring-1 focus:ring-[#0F1E3C] resize-y placeholder:text-neutral-400 font-medium"
-            />
+          <div className="space-y-4 animate-fade-in">
+            {/* Category selection for semantic mode */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-1.5">
+                Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full h-10 px-3 border border-neutral-200 rounded-lg text-sm text-[#111827] bg-white outline-none focus:border-[#0F1E3C] focus:ring-1 focus:ring-[#0F1E3C]"
+              >
+                <option value="">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Semantic query description */}
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-gray-700 mb-1.5">
+                Describe requirement
+              </label>
+              <textarea
+                value={semanticQuery}
+                onChange={(e) => setSemanticQuery(e.target.value)}
+                placeholder="e.g. mouse that won't hurt my wrist..."
+                className="w-full min-h-[96px] p-3 border border-neutral-200 rounded-lg text-sm text-[#111827] bg-white outline-none focus:border-[#0F1E3C] focus:ring-1 focus:ring-[#0F1E3C] resize-y placeholder:text-neutral-400 font-medium"
+              />
+            </div>
           </div>
         )}
 

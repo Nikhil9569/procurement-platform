@@ -26,6 +26,7 @@ export default function Dashboard() {
   // Shared Sourcing State managed in page.tsx
   const [mode, setMode] = useState<'catalog' | 'semantic'>('catalog');
   const [category, setCategory] = useState('');
+  const [semanticQuery, setSemanticQuery] = useState('');
   const [item, setItem] = useState('');
   const [volume, setVolume] = useState('');
   const [sla, setSla] = useState('');
@@ -116,10 +117,12 @@ export default function Dashboard() {
     const activeItem = overrideParams?.item ?? item;
     const activeVolume = overrideParams?.volume ?? volume;
     const activeCoords = overrideParams?.coords ?? coords;
+    const activeCategory = overrideParams?.category ?? category;
+    const activeSemanticQuery = overrideParams?.item ?? semanticQuery;
 
     try {
       let valid: CatalogItem[] = [];
-      if (activeMode ==="catalog") {
+      if (activeMode === "catalog") {
         console.log("handleSearch [catalog]: querying product_name =", activeItem);
         const { data: catalogData, error: catErr } = await supabase
           .from("vendor_catalog")
@@ -134,16 +137,16 @@ export default function Dashboard() {
         valid = (catalogData || []) as CatalogItem[];
       } else {
         // Semantic Sourcing Mode
-        console.log("handleSearch [semantic]: querying description =", destination);
+        console.log("handleSearch [semantic]: querying description =", activeSemanticQuery);
         const res = await fetch("/api/embed", {
-          method:"POST",
-          headers: {"Content-Type":"application/json" },
-          body: JSON.stringify({ texts: [destination] }) // Use destination/semantic query
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texts: [activeSemanticQuery], taskType: "RETRIEVAL_QUERY" }) // Use semantic description query with taskType
         });
         const data = await res.json();
         if (data.embeddings && data.embeddings.length > 0) {
           const { data: rpcData, error: rpcErr } = await supabase.rpc("match_products", {
-            query_embedding:`[${data.embeddings[0].join(',')}]`,
+            query_embedding: `[${data.embeddings[0].join(',')}]`,
             match_threshold: 0.5,
             match_count: 50
           });
@@ -151,9 +154,30 @@ export default function Dashboard() {
             console.error("handleSearch [semantic] RPC error:", rpcErr);
           } else {
             console.log("handleSearch [semantic] RPC raw results:", rpcData);
-          }
-          if (!rpcErr) {
-            valid = (rpcData || []) as CatalogItem[];
+            let filtered = (rpcData || []) as CatalogItem[];
+            if (activeCategory) {
+              filtered = filtered.filter(item => item.category === activeCategory);
+            }
+            
+            // Call LLM filter to remove false positives (e.g. business laptops matching "gaming laptops")
+            if (filtered.length > 0) {
+              try {
+                const filterRes = await fetch("/api/filter", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ query: activeSemanticQuery, items: filtered })
+                });
+                const filterData = await filterRes.json();
+                if (filterData.matchingIds) {
+                  const matchingSet = new Set(filterData.matchingIds);
+                  filtered = filtered.filter(item => matchingSet.has(item.id));
+                }
+              } catch (filterErr) {
+                console.error("LLM re-ranking filter failed:", filterErr);
+              }
+            }
+            
+            valid = filtered;
           }
         }
       }
@@ -427,6 +451,8 @@ export default function Dashboard() {
             setSla={setSla}
             onSearch={handleSearch}
             loading={loading}
+            semanticQuery={semanticQuery}
+            setSemanticQuery={setSemanticQuery}
           />
 
           <hr className="border-neutral-100" />
