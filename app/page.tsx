@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import LoginScreen from "@/components/LoginScreen";
+import { redirect } from"next/navigation";
+import { createClient } from"@/lib/supabase/server";
+import LoginScreen from"@/components/LoginScreen";
 
 export default async function Home() {
   const supabase = await createClient();

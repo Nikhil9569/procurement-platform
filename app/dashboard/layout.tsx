@@ -1,6 +1,6 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import DashboardSidebar from "@/components/DashboardSidebar";
+import { redirect } from"next/navigation";
+import { createClient } from"@/lib/supabase/server";
+import DashboardShell from"@/components/DashboardShell";
 
 export default async function DashboardLayout({
   children,
@@ -16,7 +16,7 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, company_name")
     .eq("id", user.id)
     .single();
 
@@ -24,12 +24,16 @@ export default async function DashboardLayout({
     redirect("/select-role");
   }
 
+  const userInitial = user.email ? user.email.charAt(0).toUpperCase() :"U";
+
   return (
-    <div className="flex min-h-screen bg-[#faf8f5]">
-      <DashboardSidebar role={profile.role} email={user.email || ""} />
-      <main className="flex-1 overflow-y-auto pt-16 md:pt-0">
-        {children}
-      </main>
-    </div>
+    <DashboardShell
+      role={profile.role}
+      email={user.email ||""}
+      companyName={profile.company_name ||""}
+      userInitial={userInitial}
+    >
+      {children}
+    </DashboardShell>
   );
 }
