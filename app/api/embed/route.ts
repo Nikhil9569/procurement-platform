@@ -15,16 +15,16 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error:"Not signed in" }, { status: 401 });
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
+    const model = genAI.getGenerativeModel({ model:"gemini-embedding-2" });
     
-    // Process embeddings in a single batch request
-    const result = await model.batchEmbedContents({
-      requests: texts.map((text) => ({
-        content: { role: "user", parts: [{ text }] },
-        model: "models/gemini-embedding-2",
-      })),
-    });
-    const embeddings = result.embeddings.map((e) => e.values);
+    // Process embeddings in parallel (rate limits permitting)
+    // For large catalogs, batching would be better, but we assume brochures are <100 products
+    const embeddings = await Promise.all(
+      texts.map(async (text) => {
+        const result = await model.embedContent(text);
+        return result.embedding.values;
+      })
+    );
 
     return NextResponse.json({ embeddings });
   } catch (e: unknown) {

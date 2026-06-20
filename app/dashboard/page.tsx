@@ -119,23 +119,12 @@ export default function Dashboard() {
 
     try {
       let valid: CatalogItem[] = [];
-      if (activeMode === "catalog") {
+      if (activeMode ==="catalog") {
         console.log("handleSearch [catalog]: querying product_name =", activeItem);
-        let queryBuilder = supabase
+        const { data: catalogData, error: catErr } = await supabase
           .from("vendor_catalog")
           .select("id, vendor_id, product_name, category, price, warranty_months, delivery_days, moq, stock")
           .eq("product_name", activeItem);
-
-        if (activeVolume) {
-          queryBuilder = queryBuilder
-            .lte("moq", Number(activeVolume))
-            .gte("stock", Number(activeVolume));
-        }
-        if (sla) {
-          queryBuilder = queryBuilder.lte("delivery_days", Number(sla));
-        }
-
-        const { data: catalogData, error: catErr } = await queryBuilder;
         
         if (catErr) {
           console.error("handleSearch [catalog] query error:", catErr);
@@ -147,19 +136,16 @@ export default function Dashboard() {
         // Semantic Sourcing Mode
         console.log("handleSearch [semantic]: querying description =", destination);
         const res = await fetch("/api/embed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method:"POST",
+          headers: {"Content-Type":"application/json" },
           body: JSON.stringify({ texts: [destination] }) // Use destination/semantic query
         });
         const data = await res.json();
         if (data.embeddings && data.embeddings.length > 0) {
           const { data: rpcData, error: rpcErr } = await supabase.rpc("match_products", {
-            query_embedding: `[${data.embeddings[0].join(',')}]`,
+            query_embedding:`[${data.embeddings[0].join(',')}]`,
             match_threshold: 0.5,
-            match_count: 50,
-            min_stock: activeVolume ? Number(activeVolume) : null,
-            max_moq: activeVolume ? Number(activeVolume) : null,
-            max_delivery_days: sla ? Number(sla) : null
+            match_count: 50
           });
           if (rpcErr) {
             console.error("handleSearch [semantic] RPC error:", rpcErr);
@@ -172,7 +158,26 @@ export default function Dashboard() {
         }
       }
 
-      console.log("handleSearch: database filtered results count =", valid.length);
+      console.log("handleSearch: before filtering, activeVolume =", activeVolume, "sla =", sla, "valid length =", valid.length);
+
+      // Volume SLA constraints filtering
+      valid = valid.filter((c) => {
+        if (activeVolume && c.moq && Number(activeVolume) < c.moq) {
+          console.log(`handleSearch: filtered out ${c.product_name} because activeVolume (${activeVolume}) < MOQ (${c.moq})`);
+          return false;
+        }
+        if (activeVolume && c.stock && Number(activeVolume) > c.stock) {
+          console.log(`handleSearch: filtered out ${c.product_name} because activeVolume (${activeVolume}) > Stock (${c.stock})`);
+          return false;
+        }
+        if (sla && c.delivery_days && c.delivery_days > Number(sla)) {
+          console.log(`handleSearch: filtered out ${c.product_name} because delivery_days (${c.delivery_days}) > SLA (${sla})`);
+          return false;
+        }
+        return true;
+      });
+
+      console.log("handleSearch: after volume/SLA filtering, valid =", valid);
 
       // Vendor details profiles
       const vendorIds = [...new Set(valid.map(c => c.vendor_id))];
@@ -403,8 +408,8 @@ export default function Dashboard() {
   return (
     <div className="w-full min-h-[calc(100vh-128px)] lg:h-[calc(100vh-128px)] lg:overflow-hidden flex flex-col lg:flex-row gap-6 text-left min-w-0 bg-[#F8F7F4]">
       
-      {/* Left Column (400px fixed width, scrollable card container on desktop) */}
-      <div className="w-full lg:w-[400px] shrink-0 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col lg:h-full overflow-hidden">
+      {/* Left Column (Half screen, scrollable card container on desktop) */}
+      <div className="w-full lg:flex-1 shrink-0 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-col lg:h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin">
           {/* Card 1: Find Vendors */}
           <VendorSearchForm

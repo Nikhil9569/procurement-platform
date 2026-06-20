@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import BrochureHistoryList from "@/components/BrochureHistoryList";
+import VendorAwardList from "@/components/VendorAwardList";
 import { Trophy, FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +29,16 @@ export default async function VendorHistoryPage() {
     .eq("vendor_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Get buyer company names
+  // Get buyer profiles
   const buyerIds = [...new Set((awards || []).map(a => a.buyer_id))];
-  let buyerMap: Record<string, string> = {};
+  let buyerProfiles: Record<string, any> = {};
   if (buyerIds.length > 0) {
-    const { data: profiles } = await supabase.from("profiles").select("id, company_name").in("id", buyerIds);
-    if (profiles) profiles.forEach(p => buyerMap[p.id] = p.company_name || "Unknown Buyer");
+    const { data: profiles } = await supabase.from("profiles").select("id, company_name, full_name, contact_email, phone_number, address").in("id", buyerIds);
+    if (profiles) {
+      profiles.forEach(p => {
+        buyerProfiles[p.id] = p;
+      });
+    }
   }
 
   // Fetch Brochure Upload History from DB brochure_uploads table
@@ -60,30 +65,8 @@ export default async function VendorHistoryPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
               {awardsErr ? (
                 <div className="p-8 text-center text-red-500 text-sm">{awardsErr.message}</div>
-              ) : !awards || awards.length === 0 ? (
-                <div className="p-8 text-center text-stone-500 text-sm">
-                  No RFQs won yet. Keep your catalogue updated!
-                </div>
               ) : (
-                <ul className="divide-y divide-stone-100">
-                  {awards.map((rfq) => (
-                    <li key={rfq.id} className="p-5 hover:bg-stone-50/50 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-semibold text-stone-900">{rfq.product_name}</span>
-                        <span className="text-sm font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
-                          ₹{(rfq.quantity * rfq.price_per_unit).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-end text-sm text-stone-500 font-normal">
-                        <div>
-                          <p>Buyer: <span className="font-semibold text-[#0F1E3C]">{buyerMap[rfq.buyer_id] || "Buyer"}</span></p>
-                          <p className="mt-0.5 text-xs">{rfq.quantity} units @ ₹{rfq.price_per_unit.toLocaleString()}</p>
-                        </div>
-                        <span className="text-xs">{new Date(rfq.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <VendorAwardList awards={awards || []} buyerProfiles={buyerProfiles} />
               )}
             </div>
           </div>

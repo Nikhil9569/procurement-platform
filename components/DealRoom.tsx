@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import VendorRating from "@/components/VendorRating";
 
 type Message = {
   id: string;
@@ -43,18 +44,6 @@ export default function DealRoom({
   const [negotiatedPrice, setNegotiatedPrice] = useState<number | null>(null);
   const [proposalInput, setProposalInput] = useState<string>("");
   const [suggestedPrice, setSuggestedPrice] = useState<number>(Math.round(pricePerUnit * 0.95));
-  const [riskFlags, setRiskFlags] = useState<Array<{ type: "error" | "warning"; title: string; desc: string }>>([
-    {
-      type: "warning",
-      title: "Strict Delivery SLA",
-      desc: "Contract deadlines leave less than 3 days of logistics buffering. Ensure penalty clauses are discussed."
-    },
-    {
-      type: "warning",
-      title: "Volume Proximity Risk",
-      desc: "Order volume exceeds 80% of vendor's current catalog stock. Confirm secondary fulfillment pathways."
-    }
-  ]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load and subscribe to database
@@ -175,7 +164,6 @@ export default function DealRoom({
         });
         const data = await res.json();
         if (data.suggestedPrice) setSuggestedPrice(data.suggestedPrice);
-        if (data.riskFlags) setRiskFlags(data.riskFlags);
       } catch (e) {
         console.error("AI initial suggestions load error:", e);
       }
@@ -294,9 +282,6 @@ export default function DealRoom({
       
       if (data.suggestedPrice) {
         setSuggestedPrice(data.suggestedPrice);
-      }
-      if (data.riskFlags) {
-        setRiskFlags(data.riskFlags);
       }
     } catch (err) {
       console.error("Error in AI negotiation:", err);
@@ -755,12 +740,26 @@ export default function DealRoom({
 
           {/* Footer Input Area */}
           {dealStage === "closed" ? (
-            <div className="p-4 border-t border-neutral-200 bg-emerald-50/50 text-center text-xs font-bold text-emerald-800 flex items-center justify-center gap-2 select-none animate-fade-in">
-              <span>🔒</span> This negotiation is finalized and locked. Sourcing contract has been signed.
+            <div className="flex flex-col">
+              <div className="p-4 border-t border-neutral-200 bg-emerald-50/50 text-center text-xs font-bold text-emerald-800 flex items-center justify-center gap-2 select-none animate-fade-in">
+                <span>🔒</span> This negotiation is finalized and locked. Sourcing contract has been signed.
+              </div>
+              {isBuyer && (
+                <div className="p-6 border-t border-neutral-200 bg-white">
+                  <VendorRating dealId={dealId} />
+                </div>
+              )}
             </div>
           ) : dealStage === "cancelled" ? (
-            <div className="p-4 border-t border-neutral-200 bg-red-50/50 text-center text-xs font-bold text-red-800 flex items-center justify-center gap-2 select-none animate-fade-in">
-              <span>❌</span> This negotiation has been cancelled and locked.
+            <div className="flex flex-col">
+              <div className="p-4 border-t border-neutral-200 bg-red-50/50 text-center text-xs font-bold text-red-800 flex items-center justify-center gap-2 select-none animate-fade-in">
+                <span>❌</span> This negotiation has been cancelled and locked.
+              </div>
+              {isBuyer && (
+                <div className="p-6 border-t border-neutral-200 bg-white">
+                  <VendorRating dealId={dealId} />
+                </div>
+              )}
             </div>
           ) : (dealStage === "buyer_signed" || dealStage === "vendor_signed") ? (
             hasISigned ? (
@@ -836,33 +835,6 @@ export default function DealRoom({
                 </div>
               </div>
             </div>
-
-            {/* Risk flags */}
-            <div className="space-y-2">
-              <span className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">AI Risk Audit Flags</span>
-              <div className="space-y-2 text-left">
-                {riskFlags.map((flag, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`flex items-start gap-2.5 p-3 rounded-xl border text-[10px] leading-relaxed
-                      ${flag.type === "error" 
-                        ? "bg-red-50 border-red-200/50 text-red-800" 
-                        : "bg-amber-50 border-amber-200/50 text-amber-800"}`}
-                  >
-                    <span className="text-base leading-none -mt-0.5">⚠️</span>
-                    <div>
-                      <span className={`font-bold block ${flag.type === "error" ? "text-red-955" : "text-amber-950"}`}>{flag.title}</span>
-                      {flag.desc}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-neutral-100 flex items-center justify-between text-[10px] font-semibold text-[#6B7280] uppercase tracking-wider">
-            <span>Model Version: Gemini 2.5</span>
-            <span>Refreshed: Real-Time</span>
           </div>
         </div>
 
