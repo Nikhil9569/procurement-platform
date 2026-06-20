@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from"react";
+import { useState } from "react";
+import { Package, Clock } from "lucide-react";
 
 type VendorSearchFormProps = {
   mode:"catalog" |"semantic";
@@ -157,12 +158,13 @@ export default function VendorSearchForm({
             Volume / quantity
           </label>
           <div className="relative flex items-center">
+            <Package className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="number"
               value={volume}
               onChange={(e) => setVolume(e.target.value)}
               placeholder="e.g. 500"
-              className="w-full h-10 pl-3 pr-16 border border-neutral-200 rounded-lg text-sm text-[#111827] bg-white outline-none focus:border-[#0F1E3C] focus:ring-1 focus:ring-[#0F1E3C]"
+              className="w-full h-10 pl-9 pr-16 border border-neutral-200 rounded-lg text-sm text-[#111827] bg-white outline-none focus:border-[#0F1E3C] focus:ring-1 focus:ring-[#0F1E3C]"
             />
             <span className="absolute right-3 text-xs text-gray-500 font-medium pointer-events-none">
               units
@@ -176,12 +178,13 @@ export default function VendorSearchForm({
             Delivery SLA
           </label>
           <div className="relative flex items-center">
+            <Clock className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="number"
               value={sla}
               onChange={(e) => setSla(e.target.value)}
               placeholder="e.g. 10"
-              className="w-full h-10 pl-3 pr-24 border border-neutral-200 rounded-lg text-sm text-[#111827] bg-white outline-none focus:border-[#0F1E3C] focus:ring-1 focus:ring-[#0F1E3C]"
+              className="w-full h-10 pl-9 pr-24 border border-neutral-200 rounded-lg text-sm text-[#111827] bg-white outline-none focus:border-[#0F1E3C] focus:ring-1 focus:ring-[#0F1E3C]"
             />
             <span className="absolute right-3 text-xs text-gray-500 font-medium pointer-events-none">
               days max

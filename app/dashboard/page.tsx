@@ -288,6 +288,25 @@ export default function Dashboard() {
     }
   };
 
+  const [selectedVendorProfile, setSelectedVendorProfile] = useState<any | null>(null);
+  const [loadingProfileDetails, setLoadingProfileDetails] = useState(false);
+
+  const handleViewProfile = async (vendorId: string) => {
+    setLoadingProfileDetails(true);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("company_name, contact_email, full_name, phone_number, address, service_radius")
+      .eq("id", vendorId)
+      .single();
+      
+    setLoadingProfileDetails(false);
+    if (!error && data) {
+      setSelectedVendorProfile(data);
+    } else {
+      console.error("Error fetching vendor profile:", error);
+    }
+  };
+
   const [feedbackModal, setFeedbackModal] = useState<{vendorId: string, companyName: string, product: string, price: number} | null>(null);
   const [feedbackRating, setFeedbackRating] = useState<number>(0);
   const [feedbackNotes, setFeedbackNotes] = useState<string>("");
@@ -309,9 +328,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="w-full h-auto md:h-[calc(100vh-64px)] grid grid-cols-1 md:grid-cols-[380px_1fr] gap-6 p-6 overflow-y-auto md:overflow-hidden text-left bg-[#F8F7F4] min-w-0">
+    <div className="w-full h-auto md:h-[calc(100vh-64px)] grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto md:overflow-hidden text-left bg-[#F8F7F4] min-w-0">
       
-      {/* Left Column (380px fixed width, scrollable on desktop) */}
+      {/* Left Column (scrollable on desktop) */}
       <div className="h-auto md:h-full overflow-y-auto pr-1 space-y-4 scrollbar-thin">
         
         {/* Card 1: Find Vendors */}
@@ -358,7 +377,7 @@ export default function Dashboard() {
           loading={loading}
           hasSearched={results !== null}
           onNegotiate={handleNegotiate}
-          onAward={handleAward}
+          onViewProfile={handleViewProfile}
           onTryPreset={handleTryPreset}
         />
       </div>
@@ -412,6 +431,99 @@ export default function Dashboard() {
             <button onClick={() => setFeedbackModal(null)} className="absolute top-4 right-4 text-neutral-400 hover:text-[#0F1E3C] cursor-pointer">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Profile Overlay */}
+      {loadingProfileDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/20 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-xl p-6 shadow-xl flex items-center gap-3">
+            <span className="flex h-6 w-6 rounded-full border-2 border-neutral-200 border-t-[#0F1E3C] animate-spin" />
+            <span className="text-xs font-semibold text-[#0F1E3C]">Fetching profile...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Vendor Profile Modal */}
+      {selectedVendorProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fade-up flex flex-col relative text-left" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Close button */}
+            <button 
+              onClick={() => setSelectedVendorProfile(null)}
+              className="absolute top-4 right-4 text-neutral-400 hover:text-[#0F1E3C] transition-colors text-xl font-bold p-1 cursor-pointer"
+            >
+              ✕
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-4 pb-4 border-b border-neutral-100 mb-6">
+              <div className="h-12 w-12 rounded-full bg-[#0F1E3C] text-white flex items-center justify-center font-bold text-base uppercase shrink-0">
+                {(selectedVendorProfile.company_name || "VE").slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#0F1E3C] leading-tight">
+                  {selectedVendorProfile.company_name || "Vendor Partner"}
+                </h3>
+                <span className="text-[10px] font-bold text-[#E8A838] uppercase tracking-wider">
+                  Verified Supplier Profile
+                </span>
+              </div>
+            </div>
+
+            {/* Details Grid */}
+            <div className="space-y-4">
+              <div>
+                <span className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1">Contact Person</span>
+                <p className="text-xs font-semibold text-[#0F1E3C]">
+                  {selectedVendorProfile.full_name || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <span className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1">Email Address</span>
+                <p className="text-xs font-semibold text-[#0F1E3C]">
+                  {selectedVendorProfile.contact_email || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <span className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1">Phone Number</span>
+                <p className="text-xs font-semibold text-[#0F1E3C]">
+                  {selectedVendorProfile.phone_number || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <span className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1">Physical Address</span>
+                <p className="text-xs font-medium text-neutral-600 leading-relaxed bg-[#faf8f5] p-3 rounded-lg border border-neutral-100">
+                  {selectedVendorProfile.address || "No physical address configured."}
+                </p>
+              </div>
+
+              {selectedVendorProfile.service_radius !== undefined && selectedVendorProfile.service_radius !== null && (
+                <div>
+                  <span className="block text-[10px] font-bold text-[#6B7280] uppercase tracking-wider mb-1">Delivery SLA / Radius</span>
+                  <p className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/50 px-2 py-1 rounded w-fit">
+                    Up to {selectedVendorProfile.service_radius} km coverage
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Close Button */}
+            <div className="mt-8 pt-4 border-t border-neutral-100">
+              <button
+                type="button"
+                onClick={() => setSelectedVendorProfile(null)}
+                className="w-full py-3 text-xs font-bold text-white bg-[#0F1E3C] hover:bg-[#1a2f5e] rounded-xl transition-colors cursor-pointer text-center"
+              >
+                Close Profile
+              </button>
+            </div>
+
           </div>
         </div>
       )}

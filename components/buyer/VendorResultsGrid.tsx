@@ -19,7 +19,7 @@ type VendorResultsGridProps = {
   loading: boolean;
   hasSearched: boolean;
   onNegotiate: (vendorId: string, companyName: string, product: string, price: number) => void;
-  onAward: (vendorId: string, companyName: string, product: string, price: number) => void;
+  onViewProfile: (vendorId: string) => void;
   onTryPreset: (category: string, volume: string, destination?: string) => void;
 };
 
@@ -28,7 +28,7 @@ export default function VendorResultsGrid({
   loading,
   hasSearched,
   onNegotiate,
-  onAward,
+  onViewProfile,
   onTryPreset,
 }: VendorResultsGridProps) {
 
@@ -146,7 +146,7 @@ export default function VendorResultsGrid({
             key={v.id}
             vendor={v}
             onNegotiate={() => onNegotiate(v.vendor_id, v.company_name ||"Supplier", v.product_name, v.price)}
-            onAward={() => onAward(v.vendor_id, v.company_name ||"Supplier", v.product_name, v.price)}
+            onViewProfile={() => onViewProfile(v.vendor_id)}
           />
         ))}
       </div>

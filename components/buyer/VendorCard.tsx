@@ -1,6 +1,6 @@
 "use client";
 
-import { ScoreBreakdown } from"@/lib/scoring";
+import { ScoreBreakdown } from "@/lib/scoring";
 
 type Pos = { lat: number; lng: number };
 
@@ -19,18 +19,18 @@ type VendorCardProps = {
     vendorPos?: Pos | null;
   };
   onNegotiate: () => void;
-  onAward: () => void;
+  onViewProfile: () => void;
 };
 
-export default function VendorCard({ vendor, onNegotiate, onAward }: VendorCardProps) {
+export default function VendorCard({ vendor, onNegotiate, onViewProfile }: VendorCardProps) {
   const scorePct = Math.round(vendor.score * 100);
 
   // Score Badge Color mapping based on score
   const getScoreBadgeClass = (score: number) => {
     const s = score * 100;
-    if (s >= 80) return"bg-green-50 text-green-800 border-green-200";
-    if (s >= 50) return"bg-amber-50 text-amber-800 border-amber-200";
-    return"bg-red-50 text-red-800 border-red-200";
+    if (s >= 80) return "bg-green-50 text-green-800 border-green-200";
+    if (s >= 50) return "bg-amber-50 text-amber-800 border-amber-200";
+    return "bg-red-50 text-red-800 border-red-200";
   };
 
   // Generate dynamic chips (keywords)
@@ -39,10 +39,10 @@ export default function VendorCard({ vendor, onNegotiate, onAward }: VendorCardP
     if (breakdown) {
       breakdown.forEach(b => {
         if (b.normalisedScore >= 0.8) {
-          if (b.factor ==="price") chips.push("bulk pricing");
-          if (b.factor ==="delivery_days") chips.push("fast delivery");
-          if (b.factor ==="warranty_months") chips.push("ISO certified");
-          if (b.factor ==="rating") chips.push("high rating");
+          if (b.factor === "price") chips.push("bulk pricing");
+          if (b.factor === "delivery_days") chips.push("fast delivery");
+          if (b.factor === "warranty_months") chips.push("ISO certified");
+          if (b.factor === "rating") chips.push("high rating");
         }
       });
     }
@@ -63,18 +63,18 @@ export default function VendorCard({ vendor, onNegotiate, onAward }: VendorCardP
   };
 
   const chips = getMatchChips(vendor.breakdown, vendor.company_name);
-  const initials = vendor.company_name?.slice(0, 2).toUpperCase() ||"VE";
+  const initials = vendor.company_name?.slice(0, 2).toUpperCase() || "VE";
 
   // Generate a stable color bg based on company name hash
   const getAvatarColor = (name?: string) => {
-    if (!name) return"bg-[#0F1E3C] text-white";
+    if (!name) return "bg-[#0F1E3C] text-white";
     const colors = [
-"bg-emerald-100 text-emerald-800 border-emerald-200",
-"bg-amber-100 text-amber-800 border-amber-200",
-"bg-blue-100 text-blue-800 border-blue-200",
-"bg-purple-100 text-purple-800 border-purple-200",
-"bg-indigo-100 text-indigo-800 border-indigo-200",
-"bg-rose-100 text-rose-800 border-rose-200",
+      "bg-emerald-100 text-emerald-800 border-emerald-200",
+      "bg-amber-100 text-amber-800 border-amber-200",
+      "bg-blue-100 text-blue-800 border-blue-200",
+      "bg-purple-100 text-purple-800 border-purple-200",
+      "bg-indigo-100 text-indigo-800 border-indigo-200",
+      "bg-rose-100 text-rose-800 border-rose-200",
     ];
     let code = 0;
     for (let i = 0; i < name.length; i++) {
@@ -84,21 +84,18 @@ export default function VendorCard({ vendor, onNegotiate, onAward }: VendorCardP
   };
 
   // Build Hover breakdown details string
-  // Price X% · Proximity X% · Speed X%
   const getBreakdownString = () => {
-    if (!vendor.breakdown) return"Matching criteria balanced";
+    if (!vendor.breakdown) return "Matching criteria balanced";
     
-    // Map breakdown fields
-    const priceFactor = vendor.breakdown.find(b => b.factor ==="price");
-    const speedFactor = vendor.breakdown.find(b => b.factor ==="delivery_days");
-    // Proximity score is distance based, use layout weights or fallback
-    const ratingFactor = vendor.breakdown.find(b => b.factor ==="rating");
+    const priceFactor = vendor.breakdown.find(b => b.factor === "price");
+    const speedFactor = vendor.breakdown.find(b => b.factor === "delivery_days");
+    const ratingFactor = vendor.breakdown.find(b => b.factor === "rating");
 
     const pScore = priceFactor ? Math.round(priceFactor.normalisedScore * 100) : 80;
     const sScore = speedFactor ? Math.round(speedFactor.normalisedScore * 100) : 75;
     const rScore = ratingFactor ? Math.round(ratingFactor.normalisedScore * 100) : 85;
 
-    return`Price ${pScore}% · Proximity ${rScore}% · Speed ${sScore}%`;
+    return `Price ${pScore}% · Proximity ${rScore}% · Speed ${sScore}%`;
   };
 
   return (
@@ -113,7 +110,7 @@ export default function VendorCard({ vendor, onNegotiate, onAward }: VendorCardP
             </div>
             <div className="min-w-0 text-left">
               <h4 className="font-medium text-[15px] text-gray-900 leading-snug truncate" title={vendor.company_name}>
-                {vendor.company_name ||"Unknown Vendor"}
+                {vendor.company_name || "Unknown Vendor"}
               </h4>
               <span className="inline-block px-2.5 py-0.5 rounded-full bg-gray-50 border border-gray-100 text-[10px] font-medium text-gray-500 mt-1">
                 {vendor.category}
@@ -160,7 +157,7 @@ export default function VendorCard({ vendor, onNegotiate, onAward }: VendorCardP
             <circle cx="12" cy="10" r="3" />
           </svg>
           <span>
-            {vendor.distanceKm != null ?`${Math.round(vendor.distanceKm)} km away` :"Distance unknown"}
+            {vendor.distanceKm != null ? `${Math.round(vendor.distanceKm)} km away` : "Distance unknown"}
           </span>
         </div>
 
@@ -174,19 +171,19 @@ export default function VendorCard({ vendor, onNegotiate, onAward }: VendorCardP
         </div>
       </div>
 
-      {/* Footer Actions: View Profile (ghost/secondary button) + Negotiate (navy button) */}
+      {/* Footer Actions: View Profile + Negotiate */}
       <div className="flex items-center gap-2 pt-4 border-t border-gray-100 mt-5">
         <button
           type="button"
-          onClick={onAward}
-          className="flex-1 h-9 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors cursor-pointer"
+          onClick={onViewProfile}
+          className="flex-1 h-9 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors cursor-pointer text-center"
         >
           View profile
         </button>
         <button
           type="button"
           onClick={onNegotiate}
-          className="flex-1 h-9 bg-[#0F1E3C] hover:bg-[#1a2f5e] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+          className="flex-1 h-9 bg-[#0F1E3C] hover:bg-[#1a2f5e] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer text-center"
         >
           Negotiate
         </button>

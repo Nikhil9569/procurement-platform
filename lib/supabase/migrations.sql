@@ -130,3 +130,54 @@ alter table public.profiles add column if not exists phone_number text;
 alter table public.profiles add column if not exists address text;
 alter table public.profiles add column if not exists service_radius double precision;
 
+-- 7. Add status and negotiated_price columns to rfq_history
+alter table public.rfq_history add column if not exists status text default 'negotiation';
+alter table public.rfq_history add column if not exists negotiated_price numeric;
+
+-- 8. Create Deal Messages table
+create table if not exists public.deal_messages (
+  id uuid default gen_random_uuid() primary key,
+  deal_id uuid references public.rfq_history(id) on delete cascade not null,
+  sender_role text not null check (sender_role in ('buyer', 'vendor', 'ai')),
+  message_text text not null,
+  created_at timestamp with time zone default now()
+);
+
+-- Enable RLS on deal_messages
+alter table public.deal_messages enable row level security;
+
+-- Drop policies to avoid error
+drop policy if exists "Users can select messages for deals they participate in" on public.deal_messages;
+drop policy if exists "Users can insert messages for deals they participate in" on public.deal_messages;
+
+-- Create policy to select messages: buyer or vendor of the deal
+create policy "Users can select messages for deals they participate in"
+on public.deal_messages for select
+to authenticated
+using (
+  exists (
+    select 1 from public.rfq_history rfq
+    where rfq.id = deal_messages.deal_id
+    and (rfq.buyer_id = auth.uid() or rfq.vendor_id = auth.uid())
+  )
+);
+
+-- Create policy to insert messages: buyer or vendor of the deal
+create policy "Users can insert messages for deals they participate in"
+on public.deal_messages for insert
+to authenticated
+with check (
+  exists (
+    select 1 from public.rfq_history rfq
+    where rfq.id = deal_messages.deal_id
+    and (rfq.buyer_id = auth.uid() or rfq.vendor_id = auth.uid())
+  )
+);
+
+-- 9. Add update policy for rfq_history
+drop policy if exists "Parties of the RFQ can update the record" on public.rfq_history;
+create policy "Parties of the RFQ can update the record"
+on public.rfq_history for update
+to authenticated
+using (buyer_id = auth.uid() or vendor_id = auth.uid());
+

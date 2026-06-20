@@ -13,7 +13,7 @@ export default async function VendorHistoryPage() {
     redirect("/");
   }
 
-  // Fetch RFQ history awarded to this vendor
+  // Fetch RFQ history awarded to this vendor (only closed/finalized deals)
   const { data: awards, error: awardsErr } = await supabase
     .from("rfq_history")
     .select(`
@@ -25,6 +25,7 @@ export default async function VendorHistoryPage() {
       buyer_id
     `)
     .eq("vendor_id", user.id)
+    .eq("status", "closed")
     .order("created_at", { ascending: false });
 
   // Get buyer company names

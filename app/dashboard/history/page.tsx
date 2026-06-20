@@ -12,11 +12,12 @@ export default async function HistoryPage() {
     return <div>Please log in</div>;
   }
 
-  // Fetch RFQ history for this buyer (without invalid join)
+  // Fetch RFQ history for this buyer (only closed/finalized deals)
   const { data: historyRows, error } = await supabase
     .from("rfq_history")
     .select(`id, vendor_id, product_name, quantity, price_per_unit, saved_amount, priority, created_at`)
     .eq("buyer_id", user.id)
+    .eq("status", "closed")
     .order("created_at", { ascending: false });
 
   if (error) {

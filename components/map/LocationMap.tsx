@@ -36,6 +36,31 @@ function Recenter({ value, vendorPos, radius }: { value: Pos | null, vendorPos?:
   return null;
 }
 
+function InvalidateMapSize() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    if (!container) return;
+
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    observer.observe(container);
+
+    // Initial invalidation trigger
+    map.invalidateSize();
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, [map]);
+  return null;
+}
+
 export default function LocationMap({
   value,
   vendorPos,
@@ -58,6 +83,7 @@ export default function LocationMap({
       />
       {onPick && <ClickHandler onPick={onPick} />}
       <Recenter value={value} vendorPos={vendorPos} radius={radius} />
+      <InvalidateMapSize />
       
       {/* Buyer/Main Marker */}
       {value && <Marker position={[value.lat, value.lng]} />}
