@@ -144,7 +144,19 @@ export default function BrochureUpload({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
 
-    const texts = products.map(p =>`Category: ${p.category.value}, Product: ${p.product_name.value}`);
+    const texts = products.map(p => {
+      const details = [
+        `Category: ${p.category.value}`,
+        `Product: ${p.product_name.value}`,
+        p.price.value ? `Price: ₹${p.price.value}` : null,
+        p.warranty_months.value ? `Warranty: ${p.warranty_months.value} months` : null,
+        p.delivery_days.value ? `Delivery time: ${p.delivery_days.value} days` : null,
+        p.moq.value ? `Minimum Order Quantity (MOQ): ${p.moq.value} units` : null,
+        p.stock?.value ? `Stock availability: ${p.stock.value} units` : null,
+        p.rating?.value ? `Rating: ${p.rating.value} stars` : null
+      ].filter(Boolean).join(", ");
+      return details;
+    });
     let embeddings: number[][] = [];
     try {
       const res = await fetch("/api/embed", {

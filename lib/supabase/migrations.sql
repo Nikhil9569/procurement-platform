@@ -50,7 +50,10 @@ drop function if exists match_products(vector(3072), float, int);
 create or replace function match_products(
   query_embedding vector(3072),
   match_threshold float,
-  match_count int
+  match_count int,
+  min_stock int default null,
+  max_moq int default null,
+  max_delivery_days int default null
 )
 returns table (
   id bigint,
@@ -81,9 +84,15 @@ as $$
     1 - (vendor_catalog.embedding <=> query_embedding) as similarity
   from vendor_catalog
   where 1 - (vendor_catalog.embedding <=> query_embedding) > match_threshold
+    and (min_stock is null or vendor_catalog.stock >= min_stock)
+    and (max_moq is null or vendor_catalog.moq <= max_moq)
+    and (max_delivery_days is null or vendor_catalog.delivery_days <= max_delivery_days)
   order by vendor_catalog.embedding <=> query_embedding
   limit match_count;
 $$;
+
+-- Create an HNSW index on the embedding column for faster similarity scans
+create index if not exists vendor_catalog_hnsw_idx on public.vendor_catalog using hnsw (embedding vector_cosine_ops);
 
 -- 5. Create RFQ History table
 create table if not exists public.rfq_history (
