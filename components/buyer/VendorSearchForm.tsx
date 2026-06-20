@@ -230,26 +230,15 @@ export default function VendorSearchForm({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Matching...
+                Searching...
               </span>
             ) : (
-"Run AI matching"
+              "Search vendors"
             )}
           </button>
         </div>
 
-        {/* Muted procurement link below */}
-        {mode ==="catalog" && (
-          <div className="text-center pt-1.5">
-            <button
-              type="button"
-              onClick={() => setMode("semantic")}
-              className="text-gray-500 text-xs font-semibold hover:text-[#0f1e3c] hover:underline cursor-pointer"
-            >
-              or describe your procurement need &rarr;
-            </button>
-          </div>
-        )}
+
       </form>
     </div>
   );

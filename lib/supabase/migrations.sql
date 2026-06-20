@@ -88,8 +88,8 @@ $$;
 -- 5. Create RFQ History table
 create table if not exists public.rfq_history (
   id uuid default gen_random_uuid() primary key,
-  buyer_id uuid references auth.users(id) not null,
-  vendor_id uuid references auth.users(id) not null,
+  buyer_id uuid references auth.users(id) on delete cascade not null,
+  vendor_id uuid references auth.users(id) on delete cascade not null,
   product_name text not null,
   quantity integer not null,
   price_per_unit numeric not null,

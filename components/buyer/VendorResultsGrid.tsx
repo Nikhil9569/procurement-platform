@@ -123,7 +123,7 @@ export default function VendorResultsGrid({
             No results yet
           </h3>
           <p className="text-gray-500 text-sm mt-2 max-w-md mx-auto leading-relaxed font-semibold">
-            Select a category, set your volume and delivery requirements, then run AI matching to see ranked vendors.
+            Select a category, set your volume and delivery requirements, then search to see ranked vendors.
           </p>
 
           {/* Suggestion preset query chips */}
@@ -185,7 +185,7 @@ export default function VendorResultsGrid({
               <div className="space-y-1">
                 <h5 className="text-xs font-bold text-gray-900">Match & Select Bids</h5>
                 <p className="text-[11px] text-gray-500 font-semibold leading-normal">
-                  Run the AI matching engine to rank proposals, view vendor details, or start negotiations.
+                  Run the search to rank proposals, view vendor details, or start negotiations.
                 </p>
               </div>
             </div>
